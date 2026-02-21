@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Графіки відключень DTEK</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --tg-bg: var(--tg-theme-bg-color, #ffffff);
+      --tg-text: var(--tg-theme-text-color, #1a1a1a);
+      --tg-hint: var(--tg-theme-hint-color, #666666);
+      --tg-link: var(--tg-theme-link-color, #2481cc);
+      --tg-btn: var(--tg-theme-button-color, #2481cc);
+      --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+      --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f1f1f1);
+    }
+    body {
+      background-color: var(--tg-bg);
+      color: var(--tg-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .tg-btn {
+      background-color: var(--tg-btn);
+      color: var(--tg-btn-text);
+    }
+    .tg-secondary { background-color: var(--tg-secondary-bg); }
+    .tg-hint { color: var(--tg-hint); }
+    .tg-link { color: var(--tg-link); }
+
+    /* Timeline slots */
+    .slot-power    { background: #ffffff; border: 1px solid #e5e7eb; }
+    .slot-no_power { background: #6b7280; }
+    .slot-possible { background: #d1d5db; }
+
+    /* Big status indicator pulse */
+    @keyframes pulse-green {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+      50%       { box-shadow: 0 0 0 16px rgba(34,197,94,0); }
+    }
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      50%       { box-shadow: 0 0 0 16px rgba(239,68,68,0); }
+    }
+    .status-on  { animation: pulse-green 2s infinite; }
+    .status-off { animation: pulse-red 2s infinite; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    input, select {
+      background-color: var(--tg-secondary-bg);
+      color: var(--tg-text);
+      border: 1.5px solid transparent;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--tg-btn);
+    }
+    .nav-tab { transition: all .2s; }
+    .nav-tab.active {
+      color: var(--tg-btn);
+      border-bottom: 2px solid var(--tg-btn);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-20">
+
+<!-- ═══ NAVIGATION ═══════════════════════════════════════════════════════════ -->
+<nav id="nav" class="fixed bottom-0 left-0 right-0 tg-secondary border-t border-gray-200 flex z-50" style="display:none!important">
+  <button onclick="showScreen('dashboard')" class="nav-tab flex-1 py-3 text-center text-xs font-medium" id="tab-dashboard">
+    <div class="text-lg">⚡</div>Моніторинг
+  </button>
+  <button onclick="showScreen('schedule')" class="nav-tab flex-1 py-3 text-center text-xs font-medium" id="tab-schedule">
+    <div class="text-lg">📅</div>Графік
+  </button>
+  <button onclick="showScreen('sensor')" class="nav-tab flex-1 py-3 text-center text-xs font-medium" id="tab-sensor">
+    <div class="text-lg">📱</div>Датчик
+  </button>
+</nav>
+
+
+<!-- ═══ SCREEN: REGISTRATION ════════════════════════════════════════════════ -->
+<div id="screen-registration" class="screen active px-4 py-6">
+  <div class="text-center mb-8">
+    <div class="text-5xl mb-3">⚡</div>
+    <h1 class="text-2xl font-bold">Графіки відключень</h1>
+    <p class="tg-hint text-sm mt-1">DTEK Моніторинг</p>
+  </div>
+
+  <div class="max-w-sm mx-auto space-y-4">
+    <div>
+      <label class="block text-sm font-medium mb-1">🏙️ Місто</label>
+      <input id="reg-city" type="text" placeholder="Наприклад: Київ"
+        class="w-full rounded-xl px-4 py-3 text-base"
+        list="city-suggestions" />
+      <datalist id="city-suggestions">
+        <option value="Київ" />
+        <option value="Дніпро" />
+        <option value="Одеса" />
+        <option value="Харків" />
+        <option value="Запоріжжя" />
+        <option value="Кривий Ріг" />
+        <option value="Херсон" />
+        <option value="Миколаїв" />
+      </datalist>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1">🛣️ Вулиця</label>
+      <input id="reg-street" type="text" placeholder="Наприклад: вул. Хрещатик"
+        class="w-full rounded-xl px-4 py-3 text-base" />
+    </div>
+
+    <div class="flex gap-3">
+      <div class="flex-1">
+        <label class="block text-sm font-medium mb-1">🏠 Будинок</label>
+        <input id="reg-house" type="text" placeholder="1А"
+          class="w-full rounded-xl px-4 py-3 text-base" />
+      </div>
+      <div class="flex-1">
+        <label class="block text-sm font-medium mb-1">👥 Група DTEK</label>
+        <select id="reg-group" class="w-full rounded-xl px-4 py-3 text-base">
+          <option value="">Оберіть</option>
+          <option value="1">Група 1</option>
+          <option value="2">Група 2</option>
+          <option value="3">Група 3</option>
+          <option value="4">Група 4</option>
+          <option value="5">Група 5</option>
+          <option value="6">Група 6</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="tg-secondary rounded-xl p-3 text-xs tg-hint">
+      💡 <b>Як дізнатись свою групу?</b><br>
+      Перевірте на сайті DTEK або на квитанції за комунальні послуги.
+    </div>
+
+    <button onclick="registerHouse()"
+      class="tg-btn w-full py-4 rounded-2xl font-semibold text-base mt-2">
+      Зареєструвати адресу →
+    </button>
+  </div>
+</div>
+
+
+<!-- ═══ SCREEN: DASHBOARD ════════════════════════════════════════════════════ -->
+<div id="screen-dashboard" class="screen px-4 py-4">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h2 class="font-bold text-lg">Поточний стан</h2>
+      <p class="tg-hint text-xs" id="dash-address">Завантаження...</p>
+    </div>
+    <button onclick="refreshDashboard()" class="tg-hint text-2xl">↻</button>
+  </div>
+
+  <!-- Big Live Status Indicator -->
+  <div class="rounded-3xl p-6 mb-4 text-center" id="status-card"
+    style="background: linear-gradient(135deg, #f0fdf4, #dcfce7)">
+    <div id="status-circle"
+      class="w-28 h-28 rounded-full mx-auto mb-4 flex items-center justify-center text-5xl status-on"
+      style="background:#22c55e">
+      💡
+    </div>
+    <div id="status-label" class="text-2xl font-bold text-green-700">Світло є</div>
+    <div id="status-sublabel" class="text-sm mt-1 text-green-600">Електропостачання в нормі</div>
+  </div>
+
+  <!-- Sensor & Schedule info row -->
+  <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="tg-secondary rounded-2xl p-3 text-center">
+      <div class="text-2xl mb-1" id="sensor-icon">📡</div>
+      <div class="text-xs font-medium">Датчик оселі</div>
+      <div class="text-xs tg-hint mt-0.5" id="sensor-updated">—</div>
+    </div>
+    <div class="tg-secondary rounded-2xl p-3 text-center">
+      <div class="text-2xl mb-1">👥</div>
+      <div class="text-xs font-medium" id="dash-group">Група —</div>
+      <div class="text-xs tg-hint mt-0.5">DTEK графік</div>
+    </div>
+  </div>
+
+  <!-- Next event -->
+  <div id="next-event-card" class="rounded-2xl p-4 mb-4 border-l-4 border-blue-400"
+    style="background: rgba(59,130,246,0.05)">
+    <div class="text-xs tg-hint font-medium mb-1">НАСТУПНА ПОДІЯ</div>
+    <div id="next-event-text" class="font-semibold">Завантаження...</div>
+    <div id="next-event-time" class="text-xs tg-hint mt-0.5"></div>
+  </div>
+</div>
+
+
+<!-- ═══ SCREEN: SCHEDULE (24h timeline) ═════════════════════════════════════ -->
+<div id="screen-schedule" class="screen px-4 py-4">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-bold text-lg">📅 Графік на сьогодні</h2>
+    <span class="tg-hint text-xs" id="sched-date"></span>
+  </div>
+
+  <div class="tg-secondary rounded-2xl p-3 mb-4">
+    <div class="text-xs tg-hint mb-2 font-medium">ГРУПА DTEK: <span id="sched-group">—</span></div>
+    <!-- Legend -->
+    <div class="flex gap-4 text-xs">
+      <div class="flex items-center gap-1.5">
+        <div class="w-3 h-3 rounded slot-power border"></div><span>Світло є</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-3 h-3 rounded slot-no_power"></div><span>Відключення</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-3 h-3 rounded slot-possible"></div><span>Можливо є</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline grid -->
+  <div id="timeline-grid" class="grid gap-1 mb-4" style="grid-template-columns: repeat(12, 1fr)">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- Hourly list -->
+  <div id="hourly-list" class="space-y-1">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+
+<!-- ═══ SCREEN: SENSOR SETUP ════════════════════════════════════════════════ -->
+<div id="screen-sensor" class="screen px-4 py-4">
+  <div class="text-center mb-6">
+    <div class="text-5xl mb-2">📱</div>
+    <h2 class="text-xl font-bold">Датчик оселі</h2>
+    <p class="tg-hint text-sm mt-1">Старий телефон як сенсор живлення</p>
+  </div>
+
+  <div class="space-y-3 mb-6">
+    <div class="tg-secondary rounded-2xl p-4">
+      <div class="font-medium mb-2">⚙️ Як це працює?</div>
+      <p class="text-sm tg-hint leading-relaxed">
+        Візьміть старий Android-телефон, встановіть <b>Termux</b> та запустіть скрипт.
+        Телефон щохвилини перевіряє — чи є заряджання (220В). Якщо світло зникло чи з'явилось —
+        ви одразу отримаєте сповіщення.
+      </p>
+    </div>
+
+    <div class="tg-secondary rounded-2xl p-4">
+      <div class="font-medium mb-3">📋 Кроки налаштування</div>
+      <div class="space-y-2 text-sm">
+        <div class="flex gap-3 items-start">
+          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">1</span>
+          <span>Встановіть <b>Termux</b> з <a href="https://f-droid.org" class="tg-link">F-Droid</a></span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">2</span>
+          <span>Встановіть пакети:<br><code class="text-xs bg-black/10 px-1 rounded">pkg install python termux-api</code></span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">3</span>
+          <span>Отримайте скрипт нижче та запустіть:<br><code class="text-xs bg-black/10 px-1 rounded">python power_sensor.py</code></span>
+        </div>
+        <div class="flex gap-3 items-start">
+          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">4</span>
+          <span>Залиште телефон підключеним до зарядки вдома</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current sensor status -->
+    <div class="tg-secondary rounded-2xl p-4" id="sensor-status-card">
+      <div class="font-medium mb-2">📡 Статус датчика</div>
+      <div id="sensor-status-detail" class="text-sm tg-hint">Датчик не налаштовано</div>
+    </div>
+  </div>
+
+  <button onclick="requestSensorScript()"
+    class="tg-btn w-full py-4 rounded-2xl font-semibold text-base">
+    📥 Отримати скрипт у Telegram
+  </button>
+</div>
+
+
+<!-- ═══ LOADING OVERLAY ═══════════════════════════════════════════════════════ -->
+<div id="loading" class="fixed inset-0 flex items-center justify-center z-50"
+  style="background: var(--tg-bg)">
+  <div class="text-center">
+    <div class="text-5xl mb-3 animate-bounce">⚡</div>
+    <div class="font-medium">Завантаження...</div>
+  </div>
+</div>
+
+
+<script>
+// ═══ CONFIG ═══════════════════════════════════════════════════════════════════
+const API_BASE = window.location.origin.includes('localhost')
+  ? 'http://localhost:8000/api'
+  : '/api';
+
+// ═══ TELEGRAM WEBAPP INIT ════════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+let tgUser = null;
+
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tgUser = tg.initDataUnsafe?.user;
+
+  // Apply Telegram theme colors
+  document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#ffffff');
+  document.documentElement.style.setProperty('--tg-text', tg.themeParams.text_color || '#1a1a1a');
+  document.documentElement.style.setProperty('--tg-hint', tg.themeParams.hint_color || '#666666');
+  document.documentElement.style.setProperty('--tg-link', tg.themeParams.link_color || '#2481cc');
+  document.documentElement.style.setProperty('--tg-btn', tg.themeParams.button_color || '#2481cc');
+  document.documentElement.style.setProperty('--tg-btn-text', tg.themeParams.button_text_color || '#ffffff');
+  document.documentElement.style.setProperty('--tg-secondary-bg', tg.themeParams.secondary_bg_color || '#f1f1f1');
+}
+
+// ═══ APP STATE ════════════════════════════════════════════════════════════════
+let appState = {
+  currentHouse: null,
+  schedule: null,
+};
+
+// ═══ SCREEN MANAGEMENT ═══════════════════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`screen-${name}`)?.classList.add('active');
+  document.getElementById(`tab-${name}`)?.classList.add('active');
+
+  if (name === 'schedule') loadSchedule();
+  if (name === 'dashboard') refreshDashboard();
+  if (name === 'sensor') loadSensorStatus();
+}
+
+function showNav() {
+  const nav = document.getElementById('nav');
+  nav.style.display = 'flex';
+  nav.style.setProperty('display', 'flex', 'important');
+}
+
+// ═══ INITIALIZATION ═══════════════════════════════════════════════════════════
+async function init() {
+  // Try to load existing house for user
+  const savedHouse = localStorage.getItem('dtek_house');
+  if (savedHouse) {
+    appState.currentHouse = JSON.parse(savedHouse);
+    showNav();
+    showScreen('dashboard');
+    hideLoading();
+    return;
+  }
+
+  // If tgUser exists, check API
+  if (tgUser) {
+    try {
+      const resp = await fetch(`${API_BASE}/houses/user/${tgUser.id}`);
+      const data = await resp.json();
+      if (data.houses && data.houses.length > 0) {
+        appState.currentHouse = data.houses[0];
+        localStorage.setItem('dtek_house', JSON.stringify(appState.currentHouse));
+        showNav();
+        showScreen('dashboard');
+        hideLoading();
+        return;
+      }
+    } catch (e) {
+      console.log('API unavailable, using demo mode');
+    }
+  }
+
+  // Show registration
+  hideLoading();
+  showScreen('registration');
+}
+
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+// ═══ REGISTRATION ════════════════════════════════════════════════════════════
+async function registerHouse() {
+  const city = document.getElementById('reg-city').value.trim();
+  const street = document.getElementById('reg-street').value.trim();
+  const house = document.getElementById('reg-house').value.trim();
+  const group = document.getElementById('reg-group').value;
+
+  if (!city || !street || !house || !group) {
+    tg?.showAlert('Будь ласка, заповніть усі поля');
+    return;
+  }
+
+  // Register user first
+  if (tgUser) {
+    try {
+      await fetch(`${API_BASE}/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: tgUser.id,
+          username: tgUser.username,
+          first_name: tgUser.first_name,
+        }),
+      });
+
+      const resp = await fetch(`${API_BASE}/houses/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: tgUser.id,
+          city, street, house_number: house,
+          dtek_group: parseInt(group),
+        }),
+      });
+      const data = await resp.json();
+      appState.currentHouse = data;
+    } catch (e) {
+      // Demo mode
+      appState.currentHouse = { id: 1, city, street, house_number: house, dtek_group: parseInt(group) };
+    }
+  } else {
+    // Demo/preview mode
+    appState.currentHouse = { id: 1, city, street, house_number: house, dtek_group: parseInt(group) };
+  }
+
+  localStorage.setItem('dtek_house', JSON.stringify(appState.currentHouse));
+  showNav();
+  showScreen('dashboard');
+}
+
+// ═══ DASHBOARD ════════════════════════════════════════════════════════════════
+async function refreshDashboard() {
+  if (!appState.currentHouse) return;
+  const h = appState.currentHouse;
+
+  document.getElementById('dash-address').textContent =
+    `${h.city}, ${h.street}, буд. ${h.house_number}`;
+  document.getElementById('dash-group').textContent = `Група ${h.dtek_group}`;
+
+  try {
+    const resp = await fetch(`${API_BASE}/schedule/${h.dtek_group}`);
+    const data = await resp.json();
+    appState.schedule = data;
+
+    updateStatusCard(data.current_status);
+    updateNextEvent(data.next_event);
+  } catch (e) {
+    // Use mock data
+    updateStatusCard('power');
+    updateNextEvent({ label: 'Відключення світла', time: '15:00', in_hours: 3 });
+  }
+
+  // Update sensor info
+  if (h.sensor_status) {
+    const s = h.sensor_status;
+    document.getElementById('sensor-icon').textContent = s.is_charging ? '🟢' : '🔴';
+    document.getElementById('sensor-updated').textContent =
+      s.updated_at ? `Оновлено: ${formatTime(s.updated_at)}` : 'Немає даних';
+  }
+}
+
+function updateStatusCard(status) {
+  const circle = document.getElementById('status-circle');
+  const label = document.getElementById('status-label');
+  const sublabel = document.getElementById('status-sublabel');
+  const card = document.getElementById('status-card');
+
+  if (status === 'power') {
+    circle.style.background = '#22c55e';
+    circle.className = circle.className.replace('status-off', 'status-on');
+    circle.textContent = '💡';
+    label.textContent = 'Світло є';
+    label.className = 'text-2xl font-bold text-green-700';
+    sublabel.textContent = 'Електропостачання в нормі';
+    sublabel.className = 'text-sm mt-1 text-green-600';
+    card.style.background = 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
+  } else {
+    circle.style.background = '#ef4444';
+    circle.className = circle.className.replace('status-on', 'status-off');
+    circle.textContent = '🔴';
+    label.textContent = 'Відключення';
+    label.className = 'text-2xl font-bold text-red-700';
+    sublabel.textContent = 'Електропостачання відсутнє';
+    sublabel.className = 'text-sm mt-1 text-red-500';
+    card.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+  }
+}
+
+function updateNextEvent(event) {
+  if (!event) {
+    document.getElementById('next-event-text').textContent = 'Дані недоступні';
+    return;
+  }
+  document.getElementById('next-event-text').textContent = event.label;
+  document.getElementById('next-event-time').textContent =
+    `О ${event.time} (через ${event.in_hours} год.)`;
+}
+
+// ═══ SCHEDULE TIMELINE ═══════════════════════════════════════════════════════
+async function loadSchedule() {
+  if (!appState.currentHouse) return;
+  const group = appState.currentHouse.dtek_group;
+
+  document.getElementById('sched-group').textContent = group;
+  document.getElementById('sched-date').textContent = new Date().toLocaleDateString('uk-UA');
+
+  let slots;
+  try {
+    const resp = await fetch(`${API_BASE}/schedule/${group}`);
+    const data = await resp.json();
+    slots = data.slots;
+  } catch (e) {
+    // Demo slots
+    slots = generateDemoSlots(group);
+  }
+
+  renderTimeline(slots);
+  renderHourlyList(slots);
+}
+
+function renderTimeline(slots) {
+  const grid = document.getElementById('timeline-grid');
+  const now = new Date().getHours();
+  grid.innerHTML = '';
+
+  slots.forEach(slot => {
+    const div = document.createElement('div');
+    div.className = `slot-${slot.type} rounded relative`;
+    div.style.height = '32px';
+
+    if (slot.hour === now) {
+      div.style.outline = '2px solid var(--tg-btn)';
+      div.style.outlineOffset = '1px';
+    }
+
+    const label = document.createElement('div');
+    label.className = 'absolute bottom-0 left-0 right-0 text-center text-gray-500';
+    label.style.fontSize = '8px';
+    if (slot.hour % 3 === 0) {
+      label.textContent = `${slot.hour}`;
+    }
+    div.appendChild(label);
+
+    const tip = document.createElement('title');
+    tip.textContent = `${slot.time_label}: ${slot.label}`;
+    div.appendChild(tip);
+
+    grid.appendChild(div);
+  });
+}
+
+function renderHourlyList(slots) {
+  const list = document.getElementById('hourly-list');
+  const now = new Date().getHours();
+  list.innerHTML = '';
+
+  const icons = { power: '💡', no_power: '⛔', possible: '🔆' };
+  const colors = { power: 'text-green-600', no_power: 'text-red-500', possible: 'text-yellow-500' };
+
+  slots.forEach(slot => {
+    const div = document.createElement('div');
+    div.className = `flex items-center justify-between px-3 py-2 rounded-xl text-sm ${
+      slot.hour === now ? 'border-2' : ''
+    }`;
+    div.style.borderColor = slot.hour === now ? 'var(--tg-btn)' : 'transparent';
+    div.style.backgroundColor = slot.hour === now ? 'rgba(var(--tg-btn-rgb, 36,129,204), 0.05)' : 'var(--tg-secondary-bg)';
+
+    div.innerHTML = `
+      <span class="tg-hint w-16">${slot.time_label.split('–')[0]}</span>
+      <span class="font-medium flex-1 ml-2 ${colors[slot.type]}">
+        ${icons[slot.type]} ${slot.label}
+      </span>
+      ${slot.hour === now ? '<span class="text-xs tg-hint font-bold">← зараз</span>' : ''}
+    `;
+    list.appendChild(div);
+  });
+}
+
+function generateDemoSlots(group) {
+  const schedules = {
+    1:[1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,1,0],
+    2:[0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,0,1],
+    3:[1,1,0,0,0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0],
+    4:[0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0],
+    5:[1,0,0,0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1],
+    6:[0,0,1,1,1,0,0,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0],
+  };
+  const raw = schedules[group] || schedules[1];
+  const types = { 1: 'power', 0: 'no_power' };
+  const labels = { 1: 'Світло є', 0: 'Відключення' };
+  return raw.map((v, h) => ({
+    hour: h,
+    time_label: `${String(h).padStart(2,'0')}:00–${String((h+1)%24).padStart(2,'0')}:00`,
+    type: types[v],
+    label: labels[v],
+  }));
+}
+
+// ═══ SENSOR ═══════════════════════════════════════════════════════════════════
+async function loadSensorStatus() {
+  const h = appState.currentHouse;
+  if (!h) return;
+
+  const detail = document.getElementById('sensor-status-detail');
+  if (h.sensor_status) {
+    const s = h.sensor_status;
+    const statusText = s.is_charging ? '🟢 Підключено — <b>Світло є</b>' : '🔴 Відключено — <b>Немає світла</b>';
+    const battery = s.battery_percentage ? `🔋 Акумулятор: ${s.battery_percentage}%` : '';
+    const updated = s.updated_at ? `⏱ Оновлено: ${formatTime(s.updated_at)}` : '';
+    detail.innerHTML = `${statusText}<br>${battery}<br>${updated}`;
+  } else {
+    detail.textContent = 'Датчик не налаштовано. Отримайте скрипт нижче.';
+  }
+}
+
+async function requestSensorScript() {
+  if (!tgUser && !appState.currentHouse) {
+    tg?.showAlert('Спочатку зареєструйте адресу');
+    return;
+  }
+
+  tg?.showAlert('Скрипт надіслано у ваш Telegram! Перевірте особисті повідомлення від бота.');
+
+  try {
+    const tgId = tgUser?.id || 0;
+    await fetch(`${API_BASE}/sensor/send-script/${tgId}`, { method: 'POST' });
+  } catch (e) {
+    console.log('API unavailable');
+  }
+}
+
+// ═══ UTILS ═══════════════════════════════════════════════════════════════════
+function formatTime(isoString) {
+  try {
+    return new Date(isoString).toLocaleTimeString('uk-UA', {
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch { return '—'; }
+}
+
+// ═══ START ════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+});
+</script>
+</body>
+</html>
