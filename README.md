@@ -1,0 +1,1 @@
+# DETEK_SVET
