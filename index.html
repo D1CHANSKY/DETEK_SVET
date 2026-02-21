@@ -1,88 +1,118 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Графіки відключень DTEK</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      --tg-bg: var(--tg-theme-bg-color, #ffffff);
-      --tg-text: var(--tg-theme-text-color, #1a1a1a);
-      --tg-hint: var(--tg-theme-hint-color, #666666);
-      --tg-link: var(--tg-theme-link-color, #2481cc);
-      --tg-btn: var(--tg-theme-button-color, #2481cc);
-      --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
-      --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f1f1f1);
+      --bg:    var(--tg-theme-bg-color,            #ffffff);
+      --text:  var(--tg-theme-text-color,          #1a1a1a);
+      --hint:  var(--tg-theme-hint-color,          #666666);
+      --link:  var(--tg-theme-link-color,          #2481cc);
+      --btn:   var(--tg-theme-button-color,        #2481cc);
+      --btnT:  var(--tg-theme-button-text-color,   #ffffff);
+      --sec:   var(--tg-theme-secondary_bg_color,  #f1f1f1);
     }
-    body {
-      background-color: var(--tg-bg);
-      color: var(--tg-text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    .tg-btn {
-      background-color: var(--tg-btn);
-      color: var(--tg-btn-text);
-    }
-    .tg-secondary { background-color: var(--tg-secondary-bg); }
-    .tg-hint { color: var(--tg-hint); }
-    .tg-link { color: var(--tg-link); }
+    body { background:var(--bg); color:var(--text);
+           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+    .tg-btn  { background:var(--btn); color:var(--btnT); }
+    .tg-sec  { background:var(--sec); }
+    .tg-hint { color:var(--hint); }
+    .tg-link { color:var(--link); }
+    .tg-border { border-color: var(--btn); }
 
-    /* Timeline slots */
-    .slot-power    { background: #ffffff; border: 1px solid #e5e7eb; }
-    .slot-no_power { background: #6b7280; }
-    .slot-possible { background: #d1d5db; }
+    input,select {
+      background:var(--sec); color:var(--text);
+      border:1.5px solid transparent; transition:border-color .2s;
+    }
+    input:focus,select:focus { outline:none; border-color:var(--btn); }
 
-    /* Big status indicator pulse */
-    @keyframes pulse-green {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-      50%       { box-shadow: 0 0 0 16px rgba(34,197,94,0); }
-    }
-    @keyframes pulse-red {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-      50%       { box-shadow: 0 0 0 16px rgba(239,68,68,0); }
-    }
-    .status-on  { animation: pulse-green 2s infinite; }
-    .status-off { animation: pulse-red 2s infinite; }
+    .screen { display:none; }
+    .screen.active { display:block; }
 
-    .screen { display: none; }
-    .screen.active { display: block; }
+    .nav-tab { transition:all .2s; border-bottom:2px solid transparent; }
+    .nav-tab.active { color:var(--btn); border-bottom-color:var(--btn); }
 
-    input, select {
-      background-color: var(--tg-secondary-bg);
-      color: var(--tg-text);
-      border: 1.5px solid transparent;
-      transition: border-color .2s;
+    /* Status pulses */
+    @keyframes pg { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}
+                    50%{box-shadow:0 0 0 18px rgba(34,197,94,0)} }
+    @keyframes pr { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.45)}
+                    50%{box-shadow:0 0 0 18px rgba(239,68,68,0)} }
+    .pulse-green { animation:pg 2s infinite; }
+    .pulse-red   { animation:pr 2s infinite; }
+
+    /* Timeline */
+    .slot-power    { background:#fff; border:1px solid #e5e7eb; }
+    .slot-no_power { background:#6b7280; }
+    .slot-possible { background:#d1d5db; }
+
+    /* Code badge */
+    .house-code {
+      font-family: 'Courier New', monospace;
+      letter-spacing: .12em;
+      background: linear-gradient(135deg,#2481cc18,#2481cc08);
+      border: 1.5px solid var(--btn);
     }
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--tg-btn);
+
+    /* Toast */
+    #toast {
+      position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:#1a1a1a; color:#fff; padding:10px 20px; border-radius:20px;
+      font-size:14px; opacity:0; transition:all .3s; z-index:999; white-space:nowrap;
+      pointer-events:none;
     }
-    .nav-tab { transition: all .2s; }
-    .nav-tab.active {
-      color: var(--tg-btn);
-      border-bottom: 2px solid var(--tg-btn);
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* Shimmer loading */
+    @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+    .shimmer {
+      background:linear-gradient(90deg,var(--sec) 25%,#e2e8f022 50%,var(--sec) 75%);
+      background-size:800px 100%; animation:shimmer 1.5s infinite;
+      border-radius:12px; height:20px;
     }
   </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen pb-24">
 
-<!-- ═══ NAVIGATION ═══════════════════════════════════════════════════════════ -->
-<nav id="nav" class="fixed bottom-0 left-0 right-0 tg-secondary border-t border-gray-200 flex z-50" style="display:none!important">
-  <button onclick="showScreen('dashboard')" class="nav-tab flex-1 py-3 text-center text-xs font-medium" id="tab-dashboard">
-    <div class="text-lg">⚡</div>Моніторинг
+<!-- ══ BOTTOM NAV ═════════════════════════════════════════════════════════ -->
+<nav id="nav" class="fixed bottom-0 left-0 right-0 tg-sec border-t border-gray-200/50 flex z-50"
+     style="display:none!important">
+  <button onclick="go('dashboard')" id="tab-dashboard"
+    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    <span class="text-xl">⚡</span>Моніторинг
   </button>
-  <button onclick="showScreen('schedule')" class="nav-tab flex-1 py-3 text-center text-xs font-medium" id="tab-schedule">
-    <div class="text-lg">📅</div>Графік
+  <button onclick="go('schedule')" id="tab-schedule"
+    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    <span class="text-xl">📅</span>Графік
   </button>
-  <button onclick="showScreen('sensor')" class="nav-tab flex-1 py-3 text-center text-xs font-medium" id="tab-sensor">
-    <div class="text-lg">📱</div>Датчик
+  <button onclick="go('sensor')" id="tab-sensor"
+    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    <span class="text-xl">📱</span>Датчик
+  </button>
+  <button onclick="go('settings')" id="tab-settings"
+    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    <span class="text-xl">⚙️</span>Налаш.
   </button>
 </nav>
 
+<!-- ══ TOAST ══════════════════════════════════════════════════════════════ -->
+<div id="toast"></div>
 
-<!-- ═══ SCREEN: REGISTRATION ════════════════════════════════════════════════ -->
+<!-- ══ LOADING ════════════════════════════════════════════════════════════ -->
+<div id="loading" class="fixed inset-0 flex items-center justify-center z-50"
+     style="background:var(--bg)">
+  <div class="text-center">
+    <div class="text-5xl mb-3 animate-bounce">⚡</div>
+    <div class="font-medium">Завантаження...</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 1 — REGISTRATION
+     ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-registration" class="screen active px-4 py-6">
   <div class="text-center mb-8">
     <div class="text-5xl mb-3">⚡</div>
@@ -90,561 +120,733 @@
     <p class="tg-hint text-sm mt-1">DTEK Моніторинг</p>
   </div>
 
-  <div class="max-w-sm mx-auto space-y-4">
+  <!-- Tab switcher -->
+  <div class="flex tg-sec rounded-2xl p-1 mb-6 gap-1">
+    <button id="reg-tab-new" onclick="switchRegTab('new')"
+      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all tg-btn">
+      🏠 Нова адреса
+    </button>
+    <button id="reg-tab-join" onclick="switchRegTab('join')"
+      class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all tg-hint">
+      🔗 Є код будинку
+    </button>
+  </div>
+
+  <!-- NEW ADDRESS form -->
+  <div id="reg-form-new" class="max-w-sm mx-auto space-y-3">
     <div>
-      <label class="block text-sm font-medium mb-1">🏙️ Місто</label>
-      <input id="reg-city" type="text" placeholder="Наприклад: Київ"
-        class="w-full rounded-xl px-4 py-3 text-base"
-        list="city-suggestions" />
-      <datalist id="city-suggestions">
-        <option value="Київ" />
-        <option value="Дніпро" />
-        <option value="Одеса" />
-        <option value="Харків" />
-        <option value="Запоріжжя" />
-        <option value="Кривий Ріг" />
-        <option value="Херсон" />
-        <option value="Миколаїв" />
+      <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">🏙️ Місто</label>
+      <input id="reg-city" type="text" placeholder="Київ" list="city-list"
+        class="w-full rounded-xl px-4 py-3 text-base"/>
+      <datalist id="city-list">
+        <option value="Київ"/><option value="Дніпро"/><option value="Одеса"/>
+        <option value="Харків"/><option value="Запоріжжя"/><option value="Кривий Ріг"/>
+        <option value="Херсон"/><option value="Миколаїв"/><option value="Вінниця"/>
+        <option value="Полтава"/><option value="Черкаси"/>
       </datalist>
     </div>
-
     <div>
-      <label class="block text-sm font-medium mb-1">🛣️ Вулиця</label>
-      <input id="reg-street" type="text" placeholder="Наприклад: вул. Хрещатик"
-        class="w-full rounded-xl px-4 py-3 text-base" />
+      <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">🛣️ Вулиця</label>
+      <input id="reg-street" type="text" placeholder="вул. Хрещатик"
+        class="w-full rounded-xl px-4 py-3 text-base"/>
     </div>
-
     <div class="flex gap-3">
       <div class="flex-1">
-        <label class="block text-sm font-medium mb-1">🏠 Будинок</label>
-        <input id="reg-house" type="text" placeholder="1А"
-          class="w-full rounded-xl px-4 py-3 text-base" />
+        <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">🏠 Будинок</label>
+        <input id="reg-house" type="text" placeholder="12А"
+          class="w-full rounded-xl px-4 py-3 text-base"/>
       </div>
       <div class="flex-1">
-        <label class="block text-sm font-medium mb-1">👥 Група DTEK</label>
+        <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">👥 Група</label>
         <select id="reg-group" class="w-full rounded-xl px-4 py-3 text-base">
-          <option value="">Оберіть</option>
-          <option value="1">Група 1</option>
-          <option value="2">Група 2</option>
-          <option value="3">Група 3</option>
-          <option value="4">Група 4</option>
-          <option value="5">Група 5</option>
-          <option value="6">Група 6</option>
+          <option value="">Обрати</option>
+          <option value="1">Група 1</option><option value="2">Група 2</option>
+          <option value="3">Група 3</option><option value="4">Група 4</option>
+          <option value="5">Група 5</option><option value="6">Група 6</option>
         </select>
       </div>
     </div>
-
-    <div class="tg-secondary rounded-xl p-3 text-xs tg-hint">
-      💡 <b>Як дізнатись свою групу?</b><br>
-      Перевірте на сайті DTEK або на квитанції за комунальні послуги.
+    <div class="tg-sec rounded-xl p-3 text-xs tg-hint">
+      💡 Групу можна дізнатись на сайті DTEK або в квитанції за комунальні послуги.
     </div>
-
     <button onclick="registerHouse()"
-      class="tg-btn w-full py-4 rounded-2xl font-semibold text-base mt-2">
+      class="tg-btn w-full py-4 rounded-2xl font-bold text-base mt-2">
       Зареєструвати адресу →
+    </button>
+  </div>
+
+  <!-- JOIN form -->
+  <div id="reg-form-join" class="max-w-sm mx-auto space-y-4 hidden">
+    <p class="tg-hint text-sm text-center">
+      Введіть 6-символьний код будинку, яким поділились сусіди
+    </p>
+    <input id="join-code-input" type="text" placeholder="AB3X7K"
+      maxlength="6"
+      class="w-full rounded-xl px-4 py-4 text-2xl text-center font-mono font-bold tracking-widest uppercase"
+      oninput="this.value=this.value.toUpperCase(); previewJoin(this.value)"/>
+
+    <!-- Preview card -->
+    <div id="join-preview" class="hidden tg-sec rounded-2xl p-4 text-sm">
+      <div class="font-semibold mb-1" id="join-preview-addr">—</div>
+      <div class="tg-hint text-xs" id="join-preview-group">—</div>
+      <div class="tg-hint text-xs" id="join-preview-neighbors">—</div>
+    </div>
+    <div id="join-preview-err" class="hidden text-center text-red-400 text-sm py-2"></div>
+
+    <button onclick="joinHouseReg()"
+      class="tg-btn w-full py-4 rounded-2xl font-bold text-base">
+      🔗 Приєднатися
     </button>
   </div>
 </div>
 
-
-<!-- ═══ SCREEN: DASHBOARD ════════════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 2 — DASHBOARD
+     ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-dashboard" class="screen px-4 py-4">
   <!-- Header -->
   <div class="flex items-center justify-between mb-4">
     <div>
       <h2 class="font-bold text-lg">Поточний стан</h2>
-      <p class="tg-hint text-xs" id="dash-address">Завантаження...</p>
+      <p class="tg-hint text-xs truncate max-w-[200px]" id="dash-address">—</p>
     </div>
-    <button onclick="refreshDashboard()" class="tg-hint text-2xl">↻</button>
+    <div class="flex items-center gap-2">
+      <!-- House code badge -->
+      <span id="dash-code" class="house-code text-xs font-bold px-2.5 py-1 rounded-lg"></span>
+      <button onclick="refreshDashboard()" class="tg-hint text-2xl leading-none">↻</button>
+    </div>
   </div>
 
-  <!-- Big Live Status Indicator -->
-  <div class="rounded-3xl p-6 mb-4 text-center" id="status-card"
-    style="background: linear-gradient(135deg, #f0fdf4, #dcfce7)">
+  <!-- BIG STATUS CARD -->
+  <div id="status-card" class="rounded-3xl p-6 mb-4 text-center"
+    style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
     <div id="status-circle"
-      class="w-28 h-28 rounded-full mx-auto mb-4 flex items-center justify-center text-5xl status-on"
-      style="background:#22c55e">
-      💡
-    </div>
+      class="w-32 h-32 rounded-full mx-auto mb-4 flex items-center justify-center text-6xl pulse-green"
+      style="background:#22c55e">💡</div>
     <div id="status-label" class="text-2xl font-bold text-green-700">Світло є</div>
-    <div id="status-sublabel" class="text-sm mt-1 text-green-600">Електропостачання в нормі</div>
+    <div id="status-sub" class="text-sm mt-1 text-green-600">Електропостачання в нормі</div>
   </div>
 
-  <!-- Sensor & Schedule info row -->
-  <div class="grid grid-cols-2 gap-3 mb-4">
-    <div class="tg-secondary rounded-2xl p-3 text-center">
-      <div class="text-2xl mb-1" id="sensor-icon">📡</div>
-      <div class="text-xs font-medium">Датчик оселі</div>
-      <div class="text-xs tg-hint mt-0.5" id="sensor-updated">—</div>
+  <!-- INFO ROW -->
+  <div class="grid grid-cols-3 gap-2 mb-3">
+    <div class="tg-sec rounded-2xl p-3 text-center">
+      <div class="text-2xl mb-0.5" id="sensor-icon">📡</div>
+      <div class="text-xs font-semibold">Датчик</div>
+      <div class="text-xs tg-hint mt-0.5 leading-tight" id="sensor-online-label">—</div>
     </div>
-    <div class="tg-secondary rounded-2xl p-3 text-center">
-      <div class="text-2xl mb-1">👥</div>
-      <div class="text-xs font-medium" id="dash-group">Група —</div>
-      <div class="text-xs tg-hint mt-0.5">DTEK графік</div>
+    <div class="tg-sec rounded-2xl p-3 text-center">
+      <div class="text-2xl mb-0.5">👥</div>
+      <div class="text-xs font-semibold" id="dash-group">Група —</div>
+      <div class="text-xs tg-hint mt-0.5" id="dash-neighbors">— мешк.</div>
+    </div>
+    <div class="tg-sec rounded-2xl p-3 text-center">
+      <div class="text-2xl mb-0.5">🔋</div>
+      <div class="text-xs font-semibold" id="sensor-battery">—%</div>
+      <div class="text-xs tg-hint mt-0.5">акумулятор</div>
     </div>
   </div>
 
-  <!-- Next event -->
-  <div id="next-event-card" class="rounded-2xl p-4 mb-4 border-l-4 border-blue-400"
-    style="background: rgba(59,130,246,0.05)">
-    <div class="text-xs tg-hint font-medium mb-1">НАСТУПНА ПОДІЯ</div>
+  <!-- NEXT EVENT -->
+  <div id="next-event-card" class="rounded-2xl p-4 mb-3 border-l-4 border-blue-400"
+    style="background:rgba(59,130,246,.06)">
+    <div class="text-xs tg-hint font-semibold mb-1 uppercase tracking-wide">Наступна подія</div>
     <div id="next-event-text" class="font-semibold">Завантаження...</div>
     <div id="next-event-time" class="text-xs tg-hint mt-0.5"></div>
   </div>
+
+  <!-- SHARE BUTTON -->
+  <button onclick="shareHouseCode()"
+    class="w-full tg-sec rounded-2xl py-3 text-sm font-medium tg-link border border-blue-200/50">
+    🔗 Поділитись кодом будинку з сусідами
+  </button>
 </div>
 
-
-<!-- ═══ SCREEN: SCHEDULE (24h timeline) ═════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 3 — SCHEDULE
+     ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-schedule" class="screen px-4 py-4">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-bold text-lg">📅 Графік на сьогодні</h2>
     <span class="tg-hint text-xs" id="sched-date"></span>
   </div>
 
-  <div class="tg-secondary rounded-2xl p-3 mb-4">
-    <div class="text-xs tg-hint mb-2 font-medium">ГРУПА DTEK: <span id="sched-group">—</span></div>
-    <!-- Legend -->
-    <div class="flex gap-4 text-xs">
-      <div class="flex items-center gap-1.5">
-        <div class="w-3 h-3 rounded slot-power border"></div><span>Світло є</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-3 h-3 rounded slot-no_power"></div><span>Відключення</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-3 h-3 rounded slot-possible"></div><span>Можливо є</span>
-      </div>
+  <div class="tg-sec rounded-2xl p-3 mb-4">
+    <div class="text-xs tg-hint mb-2 font-semibold uppercase tracking-wide">
+      Група DTEK: <span id="sched-group" class="text-base font-bold" style="color:var(--text)">—</span>
+    </div>
+    <div class="flex gap-4 text-xs flex-wrap">
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded slot-power"></div>Світло є</div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded slot-no_power"></div>Відключення</div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded slot-possible"></div>Можливо є</div>
     </div>
   </div>
 
-  <!-- Timeline grid -->
-  <div id="timeline-grid" class="grid gap-1 mb-4" style="grid-template-columns: repeat(12, 1fr)">
-    <!-- filled by JS -->
+  <!-- Timeline grid 24 cols -->
+  <div class="mb-1 flex justify-between text-xs tg-hint px-0.5">
+    <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
   </div>
+  <div id="timeline-grid" class="grid gap-0.5 mb-4 rounded-xl overflow-hidden"
+    style="grid-template-columns:repeat(24,1fr)"></div>
 
-  <!-- Hourly list -->
-  <div id="hourly-list" class="space-y-1">
-    <!-- filled by JS -->
-  </div>
+  <div id="hourly-list" class="space-y-1"></div>
 </div>
 
-
-<!-- ═══ SCREEN: SENSOR SETUP ════════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 4 — SENSOR
+     ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-sensor" class="screen px-4 py-4">
-  <div class="text-center mb-6">
+  <div class="text-center mb-5">
     <div class="text-5xl mb-2">📱</div>
     <h2 class="text-xl font-bold">Датчик оселі</h2>
     <p class="tg-hint text-sm mt-1">Старий телефон як сенсор живлення</p>
   </div>
 
-  <div class="space-y-3 mb-6">
-    <div class="tg-secondary rounded-2xl p-4">
-      <div class="font-medium mb-2">⚙️ Як це працює?</div>
-      <p class="text-sm tg-hint leading-relaxed">
-        Візьміть старий Android-телефон, встановіть <b>Termux</b> та запустіть скрипт.
-        Телефон щохвилини перевіряє — чи є заряджання (220В). Якщо світло зникло чи з'явилось —
-        ви одразу отримаєте сповіщення.
-      </p>
+  <!-- Current sensor status -->
+  <div id="sensor-card" class="tg-sec rounded-2xl p-4 mb-4">
+    <div class="flex items-center justify-between mb-2">
+      <span class="font-semibold text-sm">📡 Статус датчика</span>
+      <span id="sensor-badge" class="text-xs px-2 py-0.5 rounded-full font-medium
+        bg-gray-200 tg-hint">Немає даних</span>
     </div>
+    <div id="sensor-detail" class="text-xs tg-hint space-y-0.5">
+      <div>Датчик не налаштовано</div>
+    </div>
+  </div>
 
-    <div class="tg-secondary rounded-2xl p-4">
-      <div class="font-medium mb-3">📋 Кроки налаштування</div>
-      <div class="space-y-2 text-sm">
-        <div class="flex gap-3 items-start">
-          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">1</span>
-          <span>Встановіть <b>Termux</b> з <a href="https://f-droid.org" class="tg-link">F-Droid</a></span>
-        </div>
-        <div class="flex gap-3 items-start">
-          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">2</span>
-          <span>Встановіть пакети:<br><code class="text-xs bg-black/10 px-1 rounded">pkg install python termux-api</code></span>
-        </div>
-        <div class="flex gap-3 items-start">
-          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">3</span>
-          <span>Отримайте скрипт нижче та запустіть:<br><code class="text-xs bg-black/10 px-1 rounded">python power_sensor.py</code></span>
-        </div>
-        <div class="flex gap-3 items-start">
-          <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs flex-shrink-0 font-bold">4</span>
-          <span>Залиште телефон підключеним до зарядки вдома</span>
-        </div>
+  <!-- House code display -->
+  <div class="tg-sec rounded-2xl p-4 mb-4">
+    <div class="text-xs tg-hint font-semibold uppercase tracking-wide mb-2">Код будинку</div>
+    <div class="flex items-center gap-3">
+      <span id="sensor-house-code" class="house-code text-2xl font-bold px-4 py-2 rounded-xl">——————</span>
+      <button onclick="copyHouseCode()" class="tg-link text-sm font-medium">📋 Копіювати</button>
+    </div>
+    <p class="text-xs tg-hint mt-2">Поділіться кодом з сусідами — вони зможуть приєднатись</p>
+  </div>
+
+  <!-- Steps -->
+  <div class="tg-sec rounded-2xl p-4 mb-4">
+    <div class="font-semibold text-sm mb-3">📋 Як налаштувати датчик</div>
+    <div class="space-y-2.5 text-sm">
+      <div class="flex gap-3 items-start">
+        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+        <span>Встановіть <b>Termux</b> з <span class="tg-link">F-Droid</span></span>
       </div>
-    </div>
-
-    <!-- Current sensor status -->
-    <div class="tg-secondary rounded-2xl p-4" id="sensor-status-card">
-      <div class="font-medium mb-2">📡 Статус датчика</div>
-      <div id="sensor-status-detail" class="text-sm tg-hint">Датчик не налаштовано</div>
+      <div class="flex gap-3 items-start">
+        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+        <span>Виконайте: <code class="text-xs bg-black/10 px-1 rounded">pkg install python termux-api</code></span>
+      </div>
+      <div class="flex gap-3 items-start">
+        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+        <span>Отримайте скрипт — ваш House ID вже вписано!</span>
+      </div>
+      <div class="flex gap-3 items-start">
+        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
+        <span>Залиште телефон на зарядці вдома</span>
+      </div>
     </div>
   </div>
 
   <button onclick="requestSensorScript()"
-    class="tg-btn w-full py-4 rounded-2xl font-semibold text-base">
+    class="tg-btn w-full py-4 rounded-2xl font-bold text-base">
     📥 Отримати скрипт у Telegram
   </button>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCREEN 5 — SETTINGS (Edit house)
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="screen-settings" class="screen px-4 py-4">
+  <h2 class="font-bold text-lg mb-4">⚙️ Налаштування оселі</h2>
 
-<!-- ═══ LOADING OVERLAY ═══════════════════════════════════════════════════════ -->
-<div id="loading" class="fixed inset-0 flex items-center justify-center z-50"
-  style="background: var(--tg-bg)">
-  <div class="text-center">
-    <div class="text-5xl mb-3 animate-bounce">⚡</div>
-    <div class="font-medium">Завантаження...</div>
+  <!-- House list with edit -->
+  <div id="settings-houses" class="space-y-3 mb-6"></div>
+
+  <!-- JOIN another house -->
+  <div class="tg-sec rounded-2xl p-4 mb-3">
+    <div class="font-semibold text-sm mb-3">🔗 Приєднатися до іншого будинку</div>
+    <div class="flex gap-2">
+      <input id="settings-join-code" type="text" placeholder="AB3X7K"
+        maxlength="6"
+        class="flex-1 rounded-xl px-3 py-3 text-center font-mono font-bold text-lg tracking-widest uppercase"
+        oninput="this.value=this.value.toUpperCase()"/>
+      <button onclick="joinFromSettings()"
+        class="tg-btn px-4 rounded-xl font-semibold text-sm">
+        Приєднатись
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     EDIT MODAL
+     ════════════════════════════════════════════════════════════════════ -->
+<div id="edit-modal" class="fixed inset-0 z-40 hidden flex items-end justify-center"
+     style="background:rgba(0,0,0,.4)" onclick="closeEditModal(event)">
+  <div class="w-full max-w-md rounded-t-3xl p-5 pb-8" style="background:var(--bg)" onclick.stop>
+    <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+    <h3 class="font-bold text-lg mb-4">✏️ Редагувати оселю</h3>
+    <input type="hidden" id="edit-house-id"/>
+    <div class="space-y-3">
+      <input id="edit-city"   type="text" placeholder="Місто"   class="w-full rounded-xl px-4 py-3"/>
+      <input id="edit-street" type="text" placeholder="Вулиця"  class="w-full rounded-xl px-4 py-3"/>
+      <input id="edit-house"  type="text" placeholder="Будинок" class="w-full rounded-xl px-4 py-3"/>
+      <select id="edit-group" class="w-full rounded-xl px-4 py-3">
+        <option value="1">Група 1</option><option value="2">Група 2</option>
+        <option value="3">Група 3</option><option value="4">Група 4</option>
+        <option value="5">Група 5</option><option value="6">Група 6</option>
+      </select>
+    </div>
+    <button onclick="saveEdit()"
+      class="tg-btn w-full py-4 rounded-2xl font-bold text-base mt-4">
+      💾 Зберегти зміни
+    </button>
   </div>
 </div>
 
 
 <script>
-// ═══ CONFIG ═══════════════════════════════════════════════════════════════════
-const API_BASE = window.location.origin.includes('localhost')
-  ? 'http://localhost:8000/api'
-  : '/api';
+// ════ CONFIG ══════════════════════════════════════════════════════════════════
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000/api' : '/api';
 
-// ═══ TELEGRAM WEBAPP INIT ════════════════════════════════════════════════════
+// ════ TG INIT ════════════════════════════════════════════════════════════════
 const tg = window.Telegram?.WebApp;
 let tgUser = null;
-
 if (tg) {
-  tg.ready();
-  tg.expand();
+  tg.ready(); tg.expand();
   tgUser = tg.initDataUnsafe?.user;
-
-  // Apply Telegram theme colors
-  document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#ffffff');
-  document.documentElement.style.setProperty('--tg-text', tg.themeParams.text_color || '#1a1a1a');
-  document.documentElement.style.setProperty('--tg-hint', tg.themeParams.hint_color || '#666666');
-  document.documentElement.style.setProperty('--tg-link', tg.themeParams.link_color || '#2481cc');
-  document.documentElement.style.setProperty('--tg-btn', tg.themeParams.button_color || '#2481cc');
-  document.documentElement.style.setProperty('--tg-btn-text', tg.themeParams.button_text_color || '#ffffff');
-  document.documentElement.style.setProperty('--tg-secondary-bg', tg.themeParams.secondary_bg_color || '#f1f1f1');
+  const tp = tg.themeParams || {};
+  const set = (v, d) => v || d;
+  document.documentElement.style.cssText += `
+    --bg:${set(tp.bg_color,'#fff')};
+    --text:${set(tp.text_color,'#1a1a1a')};
+    --hint:${set(tp.hint_color,'#666')};
+    --link:${set(tp.link_color,'#2481cc')};
+    --btn:${set(tp.button_color,'#2481cc')};
+    --btnT:${set(tp.button_text_color,'#fff')};
+    --sec:${set(tp.secondary_bg_color,'#f1f1f1')};
+  `;
 }
 
-// ═══ APP STATE ════════════════════════════════════════════════════════════════
-let appState = {
-  currentHouse: null,
-  schedule: null,
-};
+// ════ STATE ═══════════════════════════════════════════════════════════════════
+let S = { house: null, schedule: null, allHouses: [] };
 
-// ═══ SCREEN MANAGEMENT ═══════════════════════════════════════════════════════
-function showScreen(name) {
+// ════ ROUTING ════════════════════════════════════════════════════════════════
+function go(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`screen-${name}`)?.classList.add('active');
-  document.getElementById(`tab-${name}`)?.classList.add('active');
-
-  if (name === 'schedule') loadSchedule();
-  if (name === 'dashboard') refreshDashboard();
-  if (name === 'sensor') loadSensorStatus();
+  document.getElementById('screen-' + screen)?.classList.add('active');
+  document.getElementById('tab-' + screen)?.classList.add('active');
+  if (screen === 'dashboard') refreshDashboard();
+  if (screen === 'schedule')  loadSchedule();
+  if (screen === 'sensor')    loadSensorScreen();
+  if (screen === 'settings')  loadSettings();
 }
 
 function showNav() {
-  const nav = document.getElementById('nav');
-  nav.style.display = 'flex';
-  nav.style.setProperty('display', 'flex', 'important');
+  const n = document.getElementById('nav');
+  n.style.cssText = 'display:flex!important';
 }
 
-// ═══ INITIALIZATION ═══════════════════════════════════════════════════════════
+// ════ INIT ═══════════════════════════════════════════════════════════════════
 async function init() {
-  // Try to load existing house for user
-  const savedHouse = localStorage.getItem('dtek_house');
-  if (savedHouse) {
-    appState.currentHouse = JSON.parse(savedHouse);
-    showNav();
-    showScreen('dashboard');
-    hideLoading();
-    return;
+  const saved = localStorage.getItem('dtek_house_v2');
+  if (saved) {
+    S.house = JSON.parse(saved);
+    showNav(); go('dashboard');
+    hideLoading(); return;
   }
-
-  // If tgUser exists, check API
   if (tgUser) {
     try {
-      const resp = await fetch(`${API_BASE}/houses/user/${tgUser.id}`);
-      const data = await resp.json();
-      if (data.houses && data.houses.length > 0) {
-        appState.currentHouse = data.houses[0];
-        localStorage.setItem('dtek_house', JSON.stringify(appState.currentHouse));
-        showNav();
-        showScreen('dashboard');
-        hideLoading();
-        return;
+      const r = await api(`/houses/user/${tgUser.id}`);
+      if (r?.houses?.length) {
+        S.house = r.houses[0];
+        S.allHouses = r.houses;
+        save(); showNav(); go('dashboard');
+        hideLoading(); return;
       }
-    } catch (e) {
-      console.log('API unavailable, using demo mode');
-    }
+    } catch(_) {}
   }
-
-  // Show registration
   hideLoading();
-  showScreen('registration');
+  document.getElementById('screen-registration').classList.add('active');
+}
+function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+function save() { localStorage.setItem('dtek_house_v2', JSON.stringify(S.house)); }
+
+// ════ API HELPERS ═════════════════════════════════════════════════════════════
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' }, ...opts
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.detail || r.statusText); }
+  return r.json();
 }
 
-function hideLoading() {
-  document.getElementById('loading').style.display = 'none';
+// ════ TOAST ═══════════════════════════════════════════════════════════════════
+let _toastT;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
-// ═══ REGISTRATION ════════════════════════════════════════════════════════════
-async function registerHouse() {
-  const city = document.getElementById('reg-city').value.trim();
-  const street = document.getElementById('reg-street').value.trim();
-  const house = document.getElementById('reg-house').value.trim();
-  const group = document.getElementById('reg-group').value;
-
-  if (!city || !street || !house || !group) {
-    tg?.showAlert('Будь ласка, заповніть усі поля');
-    return;
-  }
-
-  // Register user first
-  if (tgUser) {
-    try {
-      await fetch(`${API_BASE}/users/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegram_id: tgUser.id,
-          username: tgUser.username,
-          first_name: tgUser.first_name,
-        }),
-      });
-
-      const resp = await fetch(`${API_BASE}/houses/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegram_id: tgUser.id,
-          city, street, house_number: house,
-          dtek_group: parseInt(group),
-        }),
-      });
-      const data = await resp.json();
-      appState.currentHouse = data;
-    } catch (e) {
-      // Demo mode
-      appState.currentHouse = { id: 1, city, street, house_number: house, dtek_group: parseInt(group) };
-    }
+// ════ REGISTRATION ═══════════════════════════════════════════════════════════
+function switchRegTab(tab) {
+  const isNew = tab === 'new';
+  document.getElementById('reg-form-new').classList.toggle('hidden', !isNew);
+  document.getElementById('reg-form-join').classList.toggle('hidden', isNew);
+  const tn = document.getElementById('reg-tab-new');
+  const tj = document.getElementById('reg-tab-join');
+  if (isNew) {
+    tn.className = tn.className.replace('tg-hint','tg-btn');
+    tj.className = tj.className.replace('tg-btn','tg-hint');
   } else {
-    // Demo/preview mode
-    appState.currentHouse = { id: 1, city, street, house_number: house, dtek_group: parseInt(group) };
+    tj.className = tj.className.replace('tg-hint','tg-btn');
+    tn.className = tn.className.replace('tg-btn','tg-hint');
   }
-
-  localStorage.setItem('dtek_house', JSON.stringify(appState.currentHouse));
-  showNav();
-  showScreen('dashboard');
 }
 
-// ═══ DASHBOARD ════════════════════════════════════════════════════════════════
-async function refreshDashboard() {
-  if (!appState.currentHouse) return;
-  const h = appState.currentHouse;
+async function registerHouse() {
+  const city   = document.getElementById('reg-city').value.trim();
+  const street = document.getElementById('reg-street').value.trim();
+  const house  = document.getElementById('reg-house').value.trim();
+  const group  = document.getElementById('reg-group').value;
+  if (!city||!street||!house||!group) { toast('⚠️ Заповніть усі поля'); return; }
 
-  document.getElementById('dash-address').textContent =
-    `${h.city}, ${h.street}, буд. ${h.house_number}`;
-  document.getElementById('dash-group').textContent = `Група ${h.dtek_group}`;
+  // Register user
+  if (tgUser) {
+    await api('/users/register', { method:'POST', body: JSON.stringify({
+      telegram_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name
+    })}).catch(()=>{});
+  }
 
   try {
-    const resp = await fetch(`${API_BASE}/schedule/${h.dtek_group}`);
-    const data = await resp.json();
-    appState.schedule = data;
+    const data = await api('/houses/add', { method:'POST', body: JSON.stringify({
+      telegram_id: tgUser?.id || 0,
+      city, street, house_number: house, dtek_group: parseInt(group)
+    })});
+    S.house = data; save();
+  } catch(_) {
+    S.house = { id:1, house_code:'DEMO01', city, street, house_number:house, dtek_group:parseInt(group), neighbors_count:1 };
+    save();
+  }
+  showNav(); go('dashboard');
+}
 
-    updateStatusCard(data.current_status);
-    updateNextEvent(data.next_event);
-  } catch (e) {
-    // Use mock data
+// ─── Join preview ────────────────────────────────────────────────────────────
+let _joinTimer;
+async function previewJoin(code) {
+  clearTimeout(_joinTimer);
+  document.getElementById('join-preview').classList.add('hidden');
+  document.getElementById('join-preview-err').classList.add('hidden');
+  if (code.length !== 6) return;
+  _joinTimer = setTimeout(async () => {
+    try {
+      const d = await api(`/houses/code/${code}`);
+      document.getElementById('join-preview-addr').textContent =
+        `${d.city}, ${d.street}, буд. ${d.house_number}`;
+      document.getElementById('join-preview-group').textContent = `Група DTEK: ${d.dtek_group}`;
+      document.getElementById('join-preview-neighbors').textContent =
+        `👤 ${d.neighbors_count} мешканців стежать`;
+      document.getElementById('join-preview').classList.remove('hidden');
+    } catch(e) {
+      document.getElementById('join-preview-err').textContent = `❌ ${e.message}`;
+      document.getElementById('join-preview-err').classList.remove('hidden');
+    }
+  }, 400);
+}
+
+async function joinHouseReg() {
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  if (code.length !== 6) { toast('⚠️ Введіть 6-символьний код'); return; }
+  if (tgUser) {
+    await api('/users/register', { method:'POST', body: JSON.stringify({
+      telegram_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name
+    })}).catch(()=>{});
+  }
+  try {
+    const d = await api('/houses/join', { method:'POST', body: JSON.stringify({
+      telegram_id: tgUser?.id || 0, house_code: code
+    })});
+    S.house = d; save();
+    toast(d.already_joined ? 'ℹ️ Вже приєднано' : '✅ Успішно приєднано!');
+    showNav(); go('dashboard');
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+// ════ DASHBOARD ══════════════════════════════════════════════════════════════
+async function refreshDashboard() {
+  if (!S.house) return;
+  const h = S.house;
+  document.getElementById('dash-address').textContent =
+    `${h.city}, ${h.street}, ${h.house_number}`;
+  document.getElementById('dash-code').textContent = h.house_code || '';
+  document.getElementById('dash-group').textContent = `Група ${h.dtek_group}`;
+  document.getElementById('dash-neighbors').textContent =
+    `${h.neighbors_count ?? '—'} мешк.`;
+
+  // Refresh from API
+  if (tgUser) {
+    try {
+      const r = await api(`/houses/user/${tgUser.id}`);
+      if (r?.houses?.[0]) {
+        S.house = r.houses[0]; S.allHouses = r.houses; save();
+        const hf = S.house;
+        document.getElementById('dash-neighbors').textContent =
+          `${hf.neighbors_count ?? '—'} мешк.`;
+        updateSensorWidgets(hf.sensor_status);
+      }
+    } catch(_){}
+  }
+
+  // Schedule
+  try {
+    const sched = await api(`/schedule/${h.dtek_group}`);
+    S.schedule = sched;
+    updateStatusCard(sched.current_status);
+    updateNextEvent(sched.next_event);
+  } catch(_) {
     updateStatusCard('power');
-    updateNextEvent({ label: 'Відключення світла', time: '15:00', in_hours: 3 });
   }
+}
 
-  // Update sensor info
-  if (h.sensor_status) {
-    const s = h.sensor_status;
-    document.getElementById('sensor-icon').textContent = s.is_charging ? '🟢' : '🔴';
-    document.getElementById('sensor-updated').textContent =
-      s.updated_at ? `Оновлено: ${formatTime(s.updated_at)}` : 'Немає даних';
+function updateSensorWidgets(sensor) {
+  if (!sensor) {
+    document.getElementById('sensor-icon').textContent = '⚪';
+    document.getElementById('sensor-online-label').textContent = 'Не підключено';
+    document.getElementById('sensor-battery').textContent = '—%';
+    return;
   }
+  const online = sensor.online;
+  document.getElementById('sensor-icon').textContent = sensor.is_charging ? (online?'🟢':'🟡') : (online?'🔴':'⚪');
+  document.getElementById('sensor-online-label').textContent = sensor.online_label || '—';
+  document.getElementById('sensor-battery').textContent =
+    sensor.battery_percentage != null ? sensor.battery_percentage + '%' : '—%';
 }
 
 function updateStatusCard(status) {
   const circle = document.getElementById('status-circle');
-  const label = document.getElementById('status-label');
-  const sublabel = document.getElementById('status-sublabel');
-  const card = document.getElementById('status-card');
-
+  const label  = document.getElementById('status-label');
+  const sub    = document.getElementById('status-sub');
+  const card   = document.getElementById('status-card');
   if (status === 'power') {
     circle.style.background = '#22c55e';
-    circle.className = circle.className.replace('status-off', 'status-on');
+    circle.className = circle.className.replace('pulse-red','pulse-green');
     circle.textContent = '💡';
-    label.textContent = 'Світло є';
-    label.className = 'text-2xl font-bold text-green-700';
-    sublabel.textContent = 'Електропостачання в нормі';
-    sublabel.className = 'text-sm mt-1 text-green-600';
-    card.style.background = 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
+    label.textContent = 'Світло є'; label.className = 'text-2xl font-bold text-green-700';
+    sub.textContent = 'Електропостачання в нормі'; sub.className = 'text-sm mt-1 text-green-600';
+    card.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
   } else {
     circle.style.background = '#ef4444';
-    circle.className = circle.className.replace('status-on', 'status-off');
+    circle.className = circle.className.replace('pulse-green','pulse-red');
     circle.textContent = '🔴';
-    label.textContent = 'Відключення';
-    label.className = 'text-2xl font-bold text-red-700';
-    sublabel.textContent = 'Електропостачання відсутнє';
-    sublabel.className = 'text-sm mt-1 text-red-500';
-    card.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+    label.textContent = 'Відключення'; label.className = 'text-2xl font-bold text-red-700';
+    sub.textContent = 'Електропостачання відсутнє'; sub.className = 'text-sm mt-1 text-red-500';
+    card.style.background = 'linear-gradient(135deg,#fef2f2,#fee2e2)';
   }
 }
 
-function updateNextEvent(event) {
-  if (!event) {
-    document.getElementById('next-event-text').textContent = 'Дані недоступні';
-    return;
-  }
-  document.getElementById('next-event-text').textContent = event.label;
+function updateNextEvent(ev) {
+  if (!ev) { document.getElementById('next-event-text').textContent = 'Дані недоступні'; return; }
+  document.getElementById('next-event-text').textContent = ev.label;
   document.getElementById('next-event-time').textContent =
-    `О ${event.time} (через ${event.in_hours} год.)`;
+    `О ${ev.time} (через ${ev.in_hours} год.)`;
 }
 
-// ═══ SCHEDULE TIMELINE ═══════════════════════════════════════════════════════
-async function loadSchedule() {
-  if (!appState.currentHouse) return;
-  const group = appState.currentHouse.dtek_group;
+function shareHouseCode() {
+  const code = S.house?.house_code;
+  if (!code) return;
+  const msg = `🏠 Приєднайся до моніторингу відключень!\nКод будинку: ${code}\nВідкрий: @dtek_monitor_bot`;
+  if (tg?.shareUrl) { tg.shareUrl(msg); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(code); toast('📋 Код скопійовано: ' + code); }
+}
 
-  document.getElementById('sched-group').textContent = group;
-  document.getElementById('sched-date').textContent = new Date().toLocaleDateString('uk-UA');
+// ════ SCHEDULE ════════════════════════════════════════════════════════════════
+async function loadSchedule() {
+  if (!S.house) return;
+  document.getElementById('sched-group').textContent = S.house.dtek_group;
+  document.getElementById('sched-date').textContent =
+    new Date().toLocaleDateString('uk-UA', {weekday:'short',day:'numeric',month:'short'});
 
   let slots;
   try {
-    const resp = await fetch(`${API_BASE}/schedule/${group}`);
-    const data = await resp.json();
-    slots = data.slots;
-  } catch (e) {
-    // Demo slots
-    slots = generateDemoSlots(group);
-  }
+    const r = await api(`/schedule/${S.house.dtek_group}`);
+    slots = r.slots;
+  } catch(_) { slots = mockSlots(S.house.dtek_group); }
 
   renderTimeline(slots);
   renderHourlyList(slots);
 }
 
 function renderTimeline(slots) {
-  const grid = document.getElementById('timeline-grid');
   const now = new Date().getHours();
-  grid.innerHTML = '';
-
-  slots.forEach(slot => {
-    const div = document.createElement('div');
-    div.className = `slot-${slot.type} rounded relative`;
-    div.style.height = '32px';
-
-    if (slot.hour === now) {
-      div.style.outline = '2px solid var(--tg-btn)';
-      div.style.outlineOffset = '1px';
-    }
-
-    const label = document.createElement('div');
-    label.className = 'absolute bottom-0 left-0 right-0 text-center text-gray-500';
-    label.style.fontSize = '8px';
-    if (slot.hour % 3 === 0) {
-      label.textContent = `${slot.hour}`;
-    }
-    div.appendChild(label);
-
-    const tip = document.createElement('title');
-    tip.textContent = `${slot.time_label}: ${slot.label}`;
-    div.appendChild(tip);
-
-    grid.appendChild(div);
-  });
+  document.getElementById('timeline-grid').innerHTML = slots.map(s => `
+    <div class="slot-${s.type} relative" style="height:36px;${s.hour===now?'outline:2px solid var(--btn);outline-offset:1px':''}"
+      title="${s.time_label}: ${s.label}">
+    </div>
+  `).join('');
 }
 
 function renderHourlyList(slots) {
-  const list = document.getElementById('hourly-list');
   const now = new Date().getHours();
-  list.innerHTML = '';
-
-  const icons = { power: '💡', no_power: '⛔', possible: '🔆' };
-  const colors = { power: 'text-green-600', no_power: 'text-red-500', possible: 'text-yellow-500' };
-
-  slots.forEach(slot => {
-    const div = document.createElement('div');
-    div.className = `flex items-center justify-between px-3 py-2 rounded-xl text-sm ${
-      slot.hour === now ? 'border-2' : ''
-    }`;
-    div.style.borderColor = slot.hour === now ? 'var(--tg-btn)' : 'transparent';
-    div.style.backgroundColor = slot.hour === now ? 'rgba(var(--tg-btn-rgb, 36,129,204), 0.05)' : 'var(--tg-secondary-bg)';
-
-    div.innerHTML = `
-      <span class="tg-hint w-16">${slot.time_label.split('–')[0]}</span>
-      <span class="font-medium flex-1 ml-2 ${colors[slot.type]}">
-        ${icons[slot.type]} ${slot.label}
-      </span>
-      ${slot.hour === now ? '<span class="text-xs tg-hint font-bold">← зараз</span>' : ''}
-    `;
-    list.appendChild(div);
-  });
+  const icons = {power:'💡',no_power:'⛔',possible:'🔆'};
+  const colors = {power:'text-green-600',no_power:'text-red-500',possible:'text-yellow-500'};
+  document.getElementById('hourly-list').innerHTML = slots.map(s => `
+    <div class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm
+      ${s.hour===now ? 'border-2 tg-border font-semibold' : 'tg-sec'}">
+      <span class="tg-hint w-14 text-xs">${s.time_label.split('–')[0]}</span>
+      <span class="${colors[s.type]} flex-1">${icons[s.type]} ${s.label}</span>
+      ${s.hour===now ? '<span class="text-xs tg-hint">← зараз</span>' : ''}
+    </div>
+  `).join('');
 }
 
-function generateDemoSlots(group) {
-  const schedules = {
-    1:[1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,1,0],
+function mockSlots(group) {
+  const raw = {1:[1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,1,0],
     2:[0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,0,1],
     3:[1,1,0,0,0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0],
     4:[0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0],
     5:[1,0,0,0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1],
-    6:[0,0,1,1,1,0,0,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0],
-  };
-  const raw = schedules[group] || schedules[1];
-  const types = { 1: 'power', 0: 'no_power' };
-  const labels = { 1: 'Світло є', 0: 'Відключення' };
-  return raw.map((v, h) => ({
-    hour: h,
-    time_label: `${String(h).padStart(2,'0')}:00–${String((h+1)%24).padStart(2,'0')}:00`,
-    type: types[v],
-    label: labels[v],
+    6:[0,0,1,1,1,0,0,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0]}[group]||[];
+  return raw.map((v,h)=>({
+    hour:h, time_label:`${String(h).padStart(2,'0')}:00–${String((h+1)%24).padStart(2,'0')}:00`,
+    type:v?'power':'no_power', label:v?'Світло є':'Відключення'
   }));
 }
 
-// ═══ SENSOR ═══════════════════════════════════════════════════════════════════
-async function loadSensorStatus() {
-  const h = appState.currentHouse;
+// ════ SENSOR SCREEN ══════════════════════════════════════════════════════════
+function loadSensorScreen() {
+  const h = S.house;
   if (!h) return;
 
-  const detail = document.getElementById('sensor-status-detail');
-  if (h.sensor_status) {
-    const s = h.sensor_status;
-    const statusText = s.is_charging ? '🟢 Підключено — <b>Світло є</b>' : '🔴 Відключено — <b>Немає світла</b>';
-    const battery = s.battery_percentage ? `🔋 Акумулятор: ${s.battery_percentage}%` : '';
-    const updated = s.updated_at ? `⏱ Оновлено: ${formatTime(s.updated_at)}` : '';
-    detail.innerHTML = `${statusText}<br>${battery}<br>${updated}`;
-  } else {
-    detail.textContent = 'Датчик не налаштовано. Отримайте скрипт нижче.';
-  }
-}
+  document.getElementById('sensor-house-code').textContent = h.house_code || '——————';
 
-async function requestSensorScript() {
-  if (!tgUser && !appState.currentHouse) {
-    tg?.showAlert('Спочатку зареєструйте адресу');
+  const sensor = h.sensor_status;
+  const badge = document.getElementById('sensor-badge');
+  const detail = document.getElementById('sensor-detail');
+
+  if (!sensor) {
+    badge.textContent = 'Немає даних';
+    badge.className = badge.className.replace(/bg-\S+/g,'bg-gray-200');
+    detail.innerHTML = '<div>Датчик не налаштовано. Отримайте скрипт нижче.</div>';
     return;
   }
 
-  tg?.showAlert('Скрипт надіслано у ваш Telegram! Перевірте особисті повідомлення від бота.');
+  const online = sensor.online;
+  const charging = sensor.is_charging;
 
+  badge.textContent = sensor.online_label;
+  badge.className = badge.className.replace(/bg-\S+\s/g,'')
+    + (online ? (charging ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
+              : 'bg-gray-200 text-gray-600');
+
+  const ago = sensor.minutes_ago != null ? ` (${sensor.minutes_ago} хв тому)` : '';
+  detail.innerHTML = `
+    <div>${charging ? '💡 Заряджається — <b>Світло є</b>' : '🔴 Від батареї — <b>Немає світла</b>'}</div>
+    ${sensor.battery_percentage!=null ? `<div>🔋 Акумулятор: ${sensor.battery_percentage}%</div>` : ''}
+    <div>⏱ Оновлено${ago}</div>
+  `;
+}
+
+function copyHouseCode() {
+  const code = S.house?.house_code;
+  if (!code) return;
+  navigator.clipboard?.writeText(code).then(()=>toast('📋 Код скопійовано: ' + code));
+}
+
+async function requestSensorScript() {
+  if (!S.house) { toast('⚠️ Спочатку зареєструйте будинок'); return; }
+  toast('📤 Надсилаємо скрипт у Telegram...');
   try {
-    const tgId = tgUser?.id || 0;
-    await fetch(`${API_BASE}/sensor/send-script/${tgId}`, { method: 'POST' });
-  } catch (e) {
-    console.log('API unavailable');
+    await api(`/sensor/send-script/${tgUser?.id||0}?house_id=${S.house.id}`, {method:'POST'});
+    toast('✅ Скрипт надіслано у Telegram!');
+  } catch(_) { toast('❌ Помилка. Напишіть боту /sensor'); }
+}
+
+// ════ SETTINGS ═══════════════════════════════════════════════════════════════
+async function loadSettings() {
+  if (tgUser) {
+    try {
+      const r = await api(`/houses/user/${tgUser.id}`);
+      if (r?.houses) { S.allHouses = r.houses; }
+    } catch(_) {}
   }
+
+  const houses = S.allHouses.length ? S.allHouses : (S.house ? [S.house] : []);
+  const container = document.getElementById('settings-houses');
+
+  container.innerHTML = houses.map(h => {
+    const sensor = h.sensor_status;
+    const sIcon = sensor ? (sensor.online ? (sensor.is_charging?'🟢':'🔴') : '⚪') : '⚪';
+    return `
+    <div class="tg-sec rounded-2xl p-4">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <div class="font-semibold text-sm">${h.city}, ${h.street}, ${h.house_number}</div>
+          <div class="tg-hint text-xs mt-0.5">Група ${h.dtek_group} · 👤 ${h.neighbors_count} мешк.</div>
+        </div>
+        <button onclick='openEditModal(${JSON.stringify(h)})'
+          class="tg-link text-sm font-medium ml-2 flex-shrink-0">✏️ Змінити</button>
+      </div>
+      <div class="flex items-center gap-3 mt-2">
+        <span class="house-code text-sm font-bold px-2 py-0.5 rounded-lg">${h.house_code}</span>
+        <span class="text-xs tg-hint">${sIcon} ${sensor?.online_label||'Датчик не підкл.'}</span>
+      </div>
+    </div>`;
+  }).join('') || '<p class="tg-hint text-sm text-center py-4">Немає будинків</p>';
 }
 
-// ═══ UTILS ═══════════════════════════════════════════════════════════════════
-function formatTime(isoString) {
+async function joinFromSettings() {
+  const code = document.getElementById('settings-join-code').value.trim().toUpperCase();
+  if (code.length !== 6) { toast('⚠️ Введіть 6 символів'); return; }
   try {
-    return new Date(isoString).toLocaleTimeString('uk-UA', {
-      hour: '2-digit', minute: '2-digit'
-    });
-  } catch { return '—'; }
+    const d = await api('/houses/join', { method:'POST', body: JSON.stringify({
+      telegram_id: tgUser?.id||0, house_code: code
+    })});
+    toast(d.already_joined ? 'ℹ️ Вже приєднано' : '✅ Приєднано до ' + d.city);
+    S.house = d; save();
+    document.getElementById('settings-join-code').value = '';
+    loadSettings();
+  } catch(e) { toast('❌ ' + e.message); }
 }
 
-// ═══ START ════════════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  init();
-});
+// ─── Edit modal ──────────────────────────────────────────────────────────────
+function openEditModal(h) {
+  document.getElementById('edit-house-id').value  = h.id;
+  document.getElementById('edit-city').value   = h.city;
+  document.getElementById('edit-street').value = h.street;
+  document.getElementById('edit-house').value  = h.house_number;
+  document.getElementById('edit-group').value  = h.dtek_group;
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+function closeEditModal(e) {
+  if (e.target === document.getElementById('edit-modal'))
+    document.getElementById('edit-modal').classList.add('hidden');
+}
+
+async function saveEdit() {
+  const id = parseInt(document.getElementById('edit-house-id').value);
+  const body = {
+    telegram_id:  tgUser?.id || 0,
+    house_id:     id,
+    city:         document.getElementById('edit-city').value.trim(),
+    street:       document.getElementById('edit-street').value.trim(),
+    house_number: document.getElementById('edit-house').value.trim(),
+    dtek_group:   parseInt(document.getElementById('edit-group').value),
+  };
+  try {
+    const d = await api('/houses/edit', { method:'PATCH', body: JSON.stringify(body) });
+    toast('✅ Збережено');
+    if (S.house?.id === id) { S.house = d; save(); }
+    S.allHouses = S.allHouses.map(h => h.id === id ? d : h);
+    document.getElementById('edit-modal').classList.add('hidden');
+    loadSettings();
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+// ════ START ═══════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
