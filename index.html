@@ -8,231 +8,348 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      --bg:    var(--tg-theme-bg-color,            #ffffff);
-      --text:  var(--tg-theme-text-color,          #1a1a1a);
-      --hint:  var(--tg-theme-hint-color,          #666666);
-      --link:  var(--tg-theme-link-color,          #2481cc);
-      --btn:   var(--tg-theme-button-color,        #2481cc);
-      --btnT:  var(--tg-theme-button-text-color,   #ffffff);
-      --sec:   var(--tg-theme-secondary_bg_color,  #f1f1f1);
+      --bg:   var(--tg-theme-bg-color,           #ffffff);
+      --text: var(--tg-theme-text-color,         #111827);
+      --hint: var(--tg-theme-hint-color,         #6b7280);
+      --link: var(--tg-theme-link-color,         #2481cc);
+      --btn:  var(--tg-theme-button-color,       #2481cc);
+      --btnT: var(--tg-theme-button-text-color,  #ffffff);
+      --sec:  var(--tg-theme-secondary_bg_color, #f3f4f6);
     }
+    *    { box-sizing: border-box; }
     body { background:var(--bg); color:var(--text);
-           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+           -webkit-tap-highlight-color: transparent; }
+
+    /* ── TG helpers ── */
     .tg-btn  { background:var(--btn); color:var(--btnT); }
     .tg-sec  { background:var(--sec); }
     .tg-hint { color:var(--hint); }
     .tg-link { color:var(--link); }
-    .tg-border { border-color: var(--btn); }
 
-    input,select {
+    /* ── inputs ── */
+    input, select {
       background:var(--sec); color:var(--text);
-      border:1.5px solid transparent; transition:border-color .2s;
+      border:1.5px solid transparent; transition:border-color .18s;
+      width:100%; border-radius:14px; padding:12px 16px; font-size:16px;
     }
-    input:focus,select:focus { outline:none; border-color:var(--btn); }
+    input:focus, select:focus { outline:none; border-color:var(--btn); }
+    input::placeholder { color:var(--hint); }
 
+    /* ── screens ── */
     .screen { display:none; }
     .screen.active { display:block; }
 
-    .nav-tab { transition:all .2s; border-bottom:2px solid transparent; }
+    /* ── bottom nav ── */
+    .nav-tab { transition:all .18s; border-bottom:2px solid transparent; }
     .nav-tab.active { color:var(--btn); border-bottom-color:var(--btn); }
 
-    /* Status pulses */
-    @keyframes pg { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}
-                    50%{box-shadow:0 0 0 18px rgba(34,197,94,0)} }
-    @keyframes pr { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.45)}
-                    50%{box-shadow:0 0 0 18px rgba(239,68,68,0)} }
-    .pulse-green { animation:pg 2s infinite; }
-    .pulse-red   { animation:pr 2s infinite; }
+    /* ── status pulses ── */
+    @keyframes pg { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{box-shadow:0 0 0 20px rgba(34,197,94,0)} }
+    @keyframes pr { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)} 50%{box-shadow:0 0 0 20px rgba(239,68,68,0)} }
+    .pulse-g { animation:pg 2s infinite; }
+    .pulse-r { animation:pr 2s infinite; }
 
-    /* Timeline */
+    /* ── timeline ── */
     .slot-power    { background:#fff; border:1px solid #e5e7eb; }
     .slot-no_power { background:#6b7280; }
     .slot-possible { background:#d1d5db; }
 
-    /* Code badge */
+    /* ── autocomplete ── */
+    #street-dropdown {
+      position:absolute; left:0; right:0; top:100%;
+      background:var(--bg); border:1.5px solid var(--btn);
+      border-radius:0 0 14px 14px; z-index:100;
+      max-height:200px; overflow-y:auto;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);
+    }
+    .autocomplete-item {
+      padding:10px 16px; cursor:pointer; font-size:14px;
+      border-bottom:1px solid var(--sec);
+      transition:background .12s;
+    }
+    .autocomplete-item:hover { background:var(--sec); }
+    .autocomplete-item:last-child { border-bottom:none; }
+
+    /* ── house-code badge ── */
     .house-code {
-      font-family: 'Courier New', monospace;
-      letter-spacing: .12em;
-      background: linear-gradient(135deg,#2481cc18,#2481cc08);
-      border: 1.5px solid var(--btn);
+      font-family:'Courier New',monospace; letter-spacing:.12em;
+      background:linear-gradient(135deg,rgba(36,129,204,.1),rgba(36,129,204,.04));
+      border:1.5px solid var(--btn); border-radius:10px;
     }
 
-    /* Toast */
+    /* ── badge pills ── */
+    .badge-success { background:#dcfce7; color:#166534; }
+    .badge-info    { background:#dbeafe; color:#1e40af; }
+    .badge-warning { background:#fef3c7; color:#92400e; }
+
+    /* ── toast ── */
     #toast {
-      position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
-      background:#1a1a1a; color:#fff; padding:10px 20px; border-radius:20px;
-      font-size:14px; opacity:0; transition:all .3s; z-index:999; white-space:nowrap;
-      pointer-events:none;
+      position:fixed; bottom:76px; left:50%; transform:translateX(-50%) translateY(12px);
+      background:#111; color:#fff; padding:9px 18px; border-radius:20px;
+      font-size:13px; opacity:0; transition:all .25s; z-index:999;
+      pointer-events:none; white-space:nowrap;
     }
     #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-    /* Shimmer loading */
-    @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-    .shimmer {
-      background:linear-gradient(90deg,var(--sec) 25%,#e2e8f022 50%,var(--sec) 75%);
-      background-size:800px 100%; animation:shimmer 1.5s infinite;
-      border-radius:12px; height:20px;
+    /* ── steps ── */
+    .step-num {
+      min-width:24px; height:24px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:700;
     }
+
+    /* ── reg steps indicator ── */
+    .reg-step { display:none; }
+    .reg-step.active { display:block; }
+    .step-dot { width:8px; height:8px; border-radius:50%; background:var(--sec); transition:background .2s; }
+    .step-dot.done { background:var(--btn); }
   </style>
 </head>
 <body class="min-h-screen pb-24">
 
-<!-- ══ BOTTOM NAV ═════════════════════════════════════════════════════════ -->
-<nav id="nav" class="fixed bottom-0 left-0 right-0 tg-sec border-t border-gray-200/50 flex z-50"
+<!-- ════ NAV ════════════════════════════════════════════════════════════════ -->
+<nav id="nav" class="fixed bottom-0 left-0 right-0 tg-sec border-t border-gray-200/60 flex z-50"
      style="display:none!important">
   <button onclick="go('dashboard')" id="tab-dashboard"
-    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    class="nav-tab flex-1 py-2 flex flex-col items-center gap-0.5 text-xs font-medium">
     <span class="text-xl">⚡</span>Моніторинг
   </button>
   <button onclick="go('schedule')" id="tab-schedule"
-    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    class="nav-tab flex-1 py-2 flex flex-col items-center gap-0.5 text-xs font-medium">
     <span class="text-xl">📅</span>Графік
   </button>
   <button onclick="go('sensor')" id="tab-sensor"
-    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    class="nav-tab flex-1 py-2 flex flex-col items-center gap-0.5 text-xs font-medium">
     <span class="text-xl">📱</span>Датчик
   </button>
   <button onclick="go('settings')" id="tab-settings"
-    class="nav-tab flex-1 py-2.5 flex flex-col items-center gap-0.5 text-xs font-medium">
+    class="nav-tab flex-1 py-2 flex flex-col items-center gap-0.5 text-xs font-medium">
     <span class="text-xl">⚙️</span>Налаш.
   </button>
 </nav>
 
-<!-- ══ TOAST ══════════════════════════════════════════════════════════════ -->
+<!-- ════ TOAST ══════════════════════════════════════════════════════════════ -->
 <div id="toast"></div>
 
-<!-- ══ LOADING ════════════════════════════════════════════════════════════ -->
-<div id="loading" class="fixed inset-0 flex items-center justify-center z-50"
+<!-- ════ LOADING ════════════════════════════════════════════════════════════ -->
+<div id="loading" class="fixed inset-0 flex flex-col items-center justify-center z-50"
      style="background:var(--bg)">
-  <div class="text-center">
-    <div class="text-5xl mb-3 animate-bounce">⚡</div>
-    <div class="font-medium">Завантаження...</div>
-  </div>
+  <div class="text-6xl mb-4 animate-bounce">⚡</div>
+  <div class="font-semibold text-lg">Завантаження...</div>
+  <div class="tg-hint text-sm mt-1">DTEK Моніторинг</div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════
-     SCREEN 1 — REGISTRATION
+     SCREEN: REGISTRATION  (3-крокова форма)
      ════════════════════════════════════════════════════════════════════ -->
-<div id="screen-registration" class="screen active px-4 py-6">
-  <div class="text-center mb-8">
-    <div class="text-5xl mb-3">⚡</div>
+<div id="screen-registration" class="screen active px-4 pt-6 pb-4">
+
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <div class="text-5xl mb-2">⚡</div>
     <h1 class="text-2xl font-bold">Графіки відключень</h1>
     <p class="tg-hint text-sm mt-1">DTEK Моніторинг</p>
   </div>
 
-  <!-- Tab switcher -->
-  <div class="flex tg-sec rounded-2xl p-1 mb-6 gap-1">
-    <button id="reg-tab-new" onclick="switchRegTab('new')"
+  <!-- Tab switch: New / Join -->
+  <div class="flex tg-sec rounded-2xl p-1 mb-5 gap-1">
+    <button id="rt-new"  onclick="switchRegTab('new')"
       class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all tg-btn">
       🏠 Нова адреса
     </button>
-    <button id="reg-tab-join" onclick="switchRegTab('join')"
+    <button id="rt-join" onclick="switchRegTab('join')"
       class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all tg-hint">
       🔗 Є код будинку
     </button>
   </div>
 
-  <!-- NEW ADDRESS form -->
-  <div id="reg-form-new" class="max-w-sm mx-auto space-y-3">
-    <div>
-      <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">🏙️ Місто</label>
-      <input id="reg-city" type="text" placeholder="Київ" list="city-list"
-        class="w-full rounded-xl px-4 py-3 text-base"/>
-      <datalist id="city-list">
-        <option value="Київ"/><option value="Дніпро"/><option value="Одеса"/>
-        <option value="Харків"/><option value="Запоріжжя"/><option value="Кривий Ріг"/>
-        <option value="Херсон"/><option value="Миколаїв"/><option value="Вінниця"/>
-        <option value="Полтава"/><option value="Черкаси"/>
-      </datalist>
+  <!-- ── NEW ADDRESS: 3-step wizard ── -->
+  <div id="rf-new" class="max-w-sm mx-auto">
+
+    <!-- Step dots -->
+    <div class="flex justify-center gap-2 mb-5">
+      <div class="step-dot done" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
     </div>
-    <div>
-      <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">🛣️ Вулиця</label>
-      <input id="reg-street" type="text" placeholder="вул. Хрещатик"
-        class="w-full rounded-xl px-4 py-3 text-base"/>
-    </div>
-    <div class="flex gap-3">
-      <div class="flex-1">
-        <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">🏠 Будинок</label>
-        <input id="reg-house" type="text" placeholder="12А"
-          class="w-full rounded-xl px-4 py-3 text-base"/>
+
+    <!-- STEP 1: City + Street + House -->
+    <div id="reg-step-1" class="reg-step active space-y-3">
+      <p class="text-sm font-semibold mb-3">Крок 1 з 3 — Введіть адресу</p>
+
+      <!-- City with datalist -->
+      <div>
+        <label class="block text-xs font-semibold tg-hint uppercase tracking-wide mb-1">🏙️ Місто</label>
+        <input id="reg-city" type="text" placeholder="Наприклад: Київ"
+          list="cities-list" autocomplete="off"
+          oninput="onCityInput()" />
+        <datalist id="cities-list"></datalist>
       </div>
-      <div class="flex-1">
-        <label class="block text-xs font-semibold mb-1 tg-hint uppercase tracking-wide">👥 Група</label>
-        <select id="reg-group" class="w-full rounded-xl px-4 py-3 text-base">
-          <option value="">Обрати</option>
+
+      <!-- Street with autocomplete dropdown -->
+      <div class="relative">
+        <label class="block text-xs font-semibold tg-hint uppercase tracking-wide mb-1">🛣️ Вулиця</label>
+        <input id="reg-street" type="text" placeholder="Наприклад: Хрещатик"
+          autocomplete="off"
+          oninput="onStreetInput()" onfocus="onStreetInput()" />
+        <div id="street-dropdown" class="hidden"></div>
+      </div>
+
+      <!-- House number -->
+      <div>
+        <label class="block text-xs font-semibold tg-hint uppercase tracking-wide mb-1">🏠 Номер будинку</label>
+        <input id="reg-house" type="text" placeholder="12А" autocomplete="off"/>
+      </div>
+
+      <button onclick="goStep2()"
+        class="tg-btn w-full py-3.5 rounded-2xl font-bold text-base mt-2">
+        Далі → Визначити групу
+      </button>
+    </div>
+
+    <!-- STEP 2: Group lookup result + confirm -->
+    <div id="reg-step-2" class="reg-step space-y-3">
+      <button onclick="backStep1()" class="tg-hint text-sm mb-1">← Назад</button>
+      <p class="text-sm font-semibold">Крок 2 з 3 — Група DTEK</p>
+
+      <!-- Lookup result card -->
+      <div id="lookup-card" class="tg-sec rounded-2xl p-4">
+        <div id="lookup-status" class="flex items-center gap-2 mb-2">
+          <div class="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-sm">Визначаємо групу...</span>
+        </div>
+        <div id="lookup-address" class="text-xs tg-hint"></div>
+      </div>
+
+      <!-- Manual group select (shown if lookup failed) -->
+      <div id="manual-group-wrap" class="hidden">
+        <label class="block text-xs font-semibold tg-hint uppercase tracking-wide mb-1">
+          👥 Оберіть групу вручну
+        </label>
+        <select id="reg-group">
           <option value="1">Група 1</option><option value="2">Група 2</option>
           <option value="3">Група 3</option><option value="4">Група 4</option>
           <option value="5">Група 5</option><option value="6">Група 6</option>
         </select>
+        <p class="text-xs tg-hint mt-1">
+          💡 Групу можна дізнатись на сайті DTEK або в квитанції
+        </p>
       </div>
-    </div>
-    <div class="tg-sec rounded-xl p-3 text-xs tg-hint">
-      💡 Групу можна дізнатись на сайті DTEK або в квитанції за комунальні послуги.
-    </div>
-    <button onclick="registerHouse()"
-      class="tg-btn w-full py-4 rounded-2xl font-bold text-base mt-2">
-      Зареєструвати адресу →
-    </button>
-  </div>
 
-  <!-- JOIN form -->
-  <div id="reg-form-join" class="max-w-sm mx-auto space-y-4 hidden">
+      <!-- Mini schedule preview -->
+      <div id="schedule-preview" class="hidden">
+        <p class="text-xs tg-hint font-semibold uppercase tracking-wide mb-2">
+          Попередній перегляд розкладу
+        </p>
+        <div id="preview-timeline" class="grid gap-0.5 rounded-xl overflow-hidden mb-2"
+          style="grid-template-columns:repeat(24,1fr)"></div>
+        <div id="preview-status" class="text-sm font-semibold"></div>
+      </div>
+
+      <button id="step2-btn" onclick="goStep3()" disabled
+        class="tg-btn w-full py-3.5 rounded-2xl font-bold text-base opacity-50">
+        Далі → Підтвердити
+      </button>
+    </div>
+
+    <!-- STEP 3: Confirm -->
+    <div id="reg-step-3" class="reg-step space-y-3">
+      <button onclick="backStep2()" class="tg-hint text-sm mb-1">← Назад</button>
+      <p class="text-sm font-semibold">Крок 3 з 3 — Підтвердження</p>
+
+      <div class="tg-sec rounded-2xl p-4 space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="tg-hint">Місто</span>
+          <span id="conf-city" class="font-medium"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="tg-hint">Вулиця</span>
+          <span id="conf-street" class="font-medium"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="tg-hint">Будинок</span>
+          <span id="conf-house" class="font-medium"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="tg-hint">Група DTEK</span>
+          <span id="conf-group" class="font-bold" style="color:var(--btn)"></span>
+        </div>
+      </div>
+
+      <div id="conf-geo" class="hidden text-xs tg-hint p-3 tg-sec rounded-xl"></div>
+
+      <button onclick="registerHouse()"
+        class="tg-btn w-full py-4 rounded-2xl font-bold text-base">
+        ✅ Зареєструвати будинок
+      </button>
+    </div>
+  </div><!-- /rf-new -->
+
+  <!-- ── JOIN HOUSE ── -->
+  <div id="rf-join" class="max-w-sm mx-auto space-y-4 hidden">
     <p class="tg-hint text-sm text-center">
-      Введіть 6-символьний код будинку, яким поділились сусіди
+      Введіть 6-символьний код, яким поділились сусіди
     </p>
-    <input id="join-code-input" type="text" placeholder="AB3X7K"
-      maxlength="6"
-      class="w-full rounded-xl px-4 py-4 text-2xl text-center font-mono font-bold tracking-widest uppercase"
+    <input id="join-code" type="text" placeholder="AB3X7K"
+      maxlength="6" autocomplete="off"
+      class="text-center text-2xl font-mono font-bold tracking-widest uppercase"
+      style="letter-spacing:.2em"
       oninput="this.value=this.value.toUpperCase(); previewJoin(this.value)"/>
 
-    <!-- Preview card -->
-    <div id="join-preview" class="hidden tg-sec rounded-2xl p-4 text-sm">
-      <div class="font-semibold mb-1" id="join-preview-addr">—</div>
-      <div class="tg-hint text-xs" id="join-preview-group">—</div>
-      <div class="tg-hint text-xs" id="join-preview-neighbors">—</div>
+    <div id="join-preview" class="hidden tg-sec rounded-2xl p-4 text-sm space-y-1">
+      <div class="font-semibold" id="jp-addr"></div>
+      <div class="tg-hint text-xs" id="jp-group"></div>
+      <div class="tg-hint text-xs" id="jp-neighbors"></div>
     </div>
-    <div id="join-preview-err" class="hidden text-center text-red-400 text-sm py-2"></div>
+    <div id="join-err" class="hidden text-center text-red-400 text-sm py-1"></div>
 
     <button onclick="joinHouseReg()"
       class="tg-btn w-full py-4 rounded-2xl font-bold text-base">
       🔗 Приєднатися
     </button>
   </div>
-</div>
+</div><!-- /screen-registration -->
+
 
 <!-- ════════════════════════════════════════════════════════════════════════
-     SCREEN 2 — DASHBOARD
+     SCREEN: DASHBOARD
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-dashboard" class="screen px-4 py-4">
+
   <!-- Header -->
-  <div class="flex items-center justify-between mb-4">
-    <div>
+  <div class="flex items-start justify-between mb-4">
+    <div class="flex-1 min-w-0">
       <h2 class="font-bold text-lg">Поточний стан</h2>
-      <p class="tg-hint text-xs truncate max-w-[200px]" id="dash-address">—</p>
+      <p class="tg-hint text-xs truncate" id="dash-address">—</p>
     </div>
-    <div class="flex items-center gap-2">
-      <!-- House code badge -->
-      <span id="dash-code" class="house-code text-xs font-bold px-2.5 py-1 rounded-lg"></span>
+    <div class="flex items-center gap-2 ml-2">
+      <span id="dash-code" class="house-code text-xs font-bold px-2.5 py-1"></span>
       <button onclick="refreshDashboard()" class="tg-hint text-2xl leading-none">↻</button>
     </div>
   </div>
 
-  <!-- BIG STATUS CARD -->
-  <div id="status-card" class="rounded-3xl p-6 mb-4 text-center"
+  <!-- Big status card -->
+  <div id="status-card" class="rounded-3xl p-6 mb-3 text-center transition-all duration-500"
     style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
     <div id="status-circle"
-      class="w-32 h-32 rounded-full mx-auto mb-4 flex items-center justify-center text-6xl pulse-green"
+      class="w-32 h-32 rounded-full mx-auto mb-4 flex items-center justify-center text-6xl pulse-g"
       style="background:#22c55e">💡</div>
     <div id="status-label" class="text-2xl font-bold text-green-700">Світло є</div>
     <div id="status-sub" class="text-sm mt-1 text-green-600">Електропостачання в нормі</div>
   </div>
 
-  <!-- INFO ROW -->
+  <!-- Smart badge -->
+  <div id="smart-badge" class="hidden text-center mb-3">
+    <span id="smart-badge-text" class="inline-block text-xs font-semibold px-3 py-1 rounded-full badge-info"></span>
+  </div>
+
+  <!-- Info row -->
   <div class="grid grid-cols-3 gap-2 mb-3">
     <div class="tg-sec rounded-2xl p-3 text-center">
-      <div class="text-2xl mb-0.5" id="sensor-icon">📡</div>
-      <div class="text-xs font-semibold">Датчик</div>
-      <div class="text-xs tg-hint mt-0.5 leading-tight" id="sensor-online-label">—</div>
+      <div class="text-2xl mb-0.5" id="dash-sensor-icon">⚪</div>
+      <div class="text-xs font-semibold leading-tight" id="dash-sensor-label">Датчик</div>
+      <div class="text-xs tg-hint mt-0.5 leading-tight" id="dash-sensor-ago">—</div>
     </div>
     <div class="tg-sec rounded-2xl p-3 text-center">
       <div class="text-2xl mb-0.5">👥</div>
@@ -241,28 +358,29 @@
     </div>
     <div class="tg-sec rounded-2xl p-3 text-center">
       <div class="text-2xl mb-0.5">🔋</div>
-      <div class="text-xs font-semibold" id="sensor-battery">—%</div>
+      <div class="text-xs font-semibold" id="dash-battery">—%</div>
       <div class="text-xs tg-hint mt-0.5">акумулятор</div>
     </div>
   </div>
 
-  <!-- NEXT EVENT -->
-  <div id="next-event-card" class="rounded-2xl p-4 mb-3 border-l-4 border-blue-400"
-    style="background:rgba(59,130,246,.06)">
-    <div class="text-xs tg-hint font-semibold mb-1 uppercase tracking-wide">Наступна подія</div>
+  <!-- Next event -->
+  <div class="rounded-2xl p-4 mb-3 border-l-4 border-blue-400"
+    style="background:rgba(59,130,246,.05)">
+    <div class="text-xs tg-hint font-semibold uppercase tracking-wide mb-1">Наступна подія</div>
     <div id="next-event-text" class="font-semibold">Завантаження...</div>
     <div id="next-event-time" class="text-xs tg-hint mt-0.5"></div>
   </div>
 
-  <!-- SHARE BUTTON -->
-  <button onclick="shareHouseCode()"
-    class="w-full tg-sec rounded-2xl py-3 text-sm font-medium tg-link border border-blue-200/50">
-    🔗 Поділитись кодом будинку з сусідами
+  <!-- Share -->
+  <button onclick="shareCode()"
+    class="w-full tg-sec rounded-2xl py-3 text-sm font-medium tg-link border border-blue-200/40">
+    🔗 Поділитись кодом з сусідами
   </button>
 </div>
 
+
 <!-- ════════════════════════════════════════════════════════════════════════
-     SCREEN 3 — SCHEDULE
+     SCREEN: SCHEDULE
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-schedule" class="screen px-4 py-4">
   <div class="flex items-center justify-between mb-4">
@@ -270,29 +388,29 @@
     <span class="tg-hint text-xs" id="sched-date"></span>
   </div>
 
-  <div class="tg-sec rounded-2xl p-3 mb-4">
-    <div class="text-xs tg-hint mb-2 font-semibold uppercase tracking-wide">
-      Група DTEK: <span id="sched-group" class="text-base font-bold" style="color:var(--text)">—</span>
+  <div class="tg-sec rounded-2xl p-3 mb-3">
+    <div class="text-xs tg-hint font-semibold uppercase tracking-wide mb-2">
+      Група: <span id="sched-group" class="text-base font-bold" style="color:var(--text)">—</span>
     </div>
     <div class="flex gap-4 text-xs flex-wrap">
-      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded slot-power"></div>Світло є</div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded slot-power border border-gray-200"></div>Світло є</div>
       <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded slot-no_power"></div>Відключення</div>
       <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded slot-possible"></div>Можливо є</div>
     </div>
   </div>
 
-  <!-- Timeline grid 24 cols -->
   <div class="mb-1 flex justify-between text-xs tg-hint px-0.5">
     <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
   </div>
-  <div id="timeline-grid" class="grid gap-0.5 mb-4 rounded-xl overflow-hidden"
+  <div id="sched-timeline" class="grid gap-0.5 mb-4 rounded-xl overflow-hidden"
     style="grid-template-columns:repeat(24,1fr)"></div>
 
-  <div id="hourly-list" class="space-y-1"></div>
+  <div id="sched-list" class="space-y-1"></div>
 </div>
 
+
 <!-- ════════════════════════════════════════════════════════════════════════
-     SCREEN 4 — SENSOR
+     SCREEN: SENSOR
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-sensor" class="screen px-4 py-4">
   <div class="text-center mb-5">
@@ -301,73 +419,73 @@
     <p class="tg-hint text-sm mt-1">Старий телефон як сенсор живлення</p>
   </div>
 
-  <!-- Current sensor status -->
-  <div id="sensor-card" class="tg-sec rounded-2xl p-4 mb-4">
+  <!-- Current status -->
+  <div id="sensor-status-card" class="tg-sec rounded-2xl p-4 mb-4">
     <div class="flex items-center justify-between mb-2">
       <span class="font-semibold text-sm">📡 Статус датчика</span>
-      <span id="sensor-badge" class="text-xs px-2 py-0.5 rounded-full font-medium
-        bg-gray-200 tg-hint">Немає даних</span>
+      <span id="sensor-badge" class="text-xs px-2.5 py-1 rounded-full font-medium bg-gray-200 tg-hint">—</span>
     </div>
     <div id="sensor-detail" class="text-xs tg-hint space-y-0.5">
       <div>Датчик не налаштовано</div>
     </div>
   </div>
 
-  <!-- House code display -->
+  <!-- House code -->
   <div class="tg-sec rounded-2xl p-4 mb-4">
     <div class="text-xs tg-hint font-semibold uppercase tracking-wide mb-2">Код будинку</div>
     <div class="flex items-center gap-3">
-      <span id="sensor-house-code" class="house-code text-2xl font-bold px-4 py-2 rounded-xl">——————</span>
-      <button onclick="copyHouseCode()" class="tg-link text-sm font-medium">📋 Копіювати</button>
+      <span id="sensor-code" class="house-code text-2xl font-bold px-4 py-2">——————</span>
+      <button onclick="copyCode()" class="tg-link text-sm font-semibold">📋 Копіювати</button>
     </div>
-    <p class="text-xs tg-hint mt-2">Поділіться кодом з сусідами — вони зможуть приєднатись</p>
+    <p class="text-xs tg-hint mt-2">Поділіться кодом з сусідами — вони можуть приєднатись</p>
   </div>
 
-  <!-- Steps -->
+  <!-- Setup steps -->
   <div class="tg-sec rounded-2xl p-4 mb-4">
-    <div class="font-semibold text-sm mb-3">📋 Як налаштувати датчик</div>
+    <div class="font-semibold text-sm mb-3">📋 Налаштування датчика</div>
     <div class="space-y-2.5 text-sm">
       <div class="flex gap-3 items-start">
-        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-        <span>Встановіть <b>Termux</b> з <span class="tg-link">F-Droid</span></span>
+        <span class="tg-btn step-num flex-shrink-0">1</span>
+        <span>Встановіть <b>Termux</b> з <span class="tg-link font-medium">F-Droid</span> (не з Play Store!)</span>
       </div>
       <div class="flex gap-3 items-start">
-        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-        <span>Виконайте: <code class="text-xs bg-black/10 px-1 rounded">pkg install python termux-api</code></span>
+        <span class="tg-btn step-num flex-shrink-0">2</span>
+        <span>Виконайте у Termux:<br>
+          <code class="text-xs bg-black/10 px-1.5 py-0.5 rounded mt-1 inline-block">pkg install python termux-api</code>
+        </span>
       </div>
       <div class="flex gap-3 items-start">
-        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+        <span class="tg-btn step-num flex-shrink-0">3</span>
         <span>Отримайте скрипт — ваш House ID вже вписано!</span>
       </div>
       <div class="flex gap-3 items-start">
-        <span class="tg-btn rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
-        <span>Залиште телефон на зарядці вдома</span>
+        <span class="tg-btn step-num flex-shrink-0">4</span>
+        <span>Залиште телефон підключеним до зарядки вдома 🔌</span>
       </div>
     </div>
   </div>
 
-  <button onclick="requestSensorScript()"
+  <button onclick="requestScript()"
     class="tg-btn w-full py-4 rounded-2xl font-bold text-base">
     📥 Отримати скрипт у Telegram
   </button>
 </div>
 
+
 <!-- ════════════════════════════════════════════════════════════════════════
-     SCREEN 5 — SETTINGS (Edit house)
+     SCREEN: SETTINGS
      ════════════════════════════════════════════════════════════════════ -->
 <div id="screen-settings" class="screen px-4 py-4">
-  <h2 class="font-bold text-lg mb-4">⚙️ Налаштування оселі</h2>
+  <h2 class="font-bold text-lg mb-4">⚙️ Мої будинки</h2>
+  <div id="settings-list" class="space-y-3 mb-5"></div>
 
-  <!-- House list with edit -->
-  <div id="settings-houses" class="space-y-3 mb-6"></div>
-
-  <!-- JOIN another house -->
-  <div class="tg-sec rounded-2xl p-4 mb-3">
-    <div class="font-semibold text-sm mb-3">🔗 Приєднатися до іншого будинку</div>
+  <div class="tg-sec rounded-2xl p-4">
+    <div class="font-semibold text-sm mb-3">🔗 Приєднатись за кодом</div>
     <div class="flex gap-2">
-      <input id="settings-join-code" type="text" placeholder="AB3X7K"
-        maxlength="6"
-        class="flex-1 rounded-xl px-3 py-3 text-center font-mono font-bold text-lg tracking-widest uppercase"
+      <input id="settings-join" type="text" placeholder="AB3X7K" maxlength="6"
+        autocomplete="off"
+        class="flex-1 text-center font-mono font-bold text-lg tracking-widest uppercase"
+        style="letter-spacing:.15em; border-radius:12px; padding:10px;"
         oninput="this.value=this.value.toUpperCase()"/>
       <button onclick="joinFromSettings()"
         class="tg-btn px-4 rounded-xl font-semibold text-sm">
@@ -377,20 +495,22 @@
   </div>
 </div>
 
+
 <!-- ════════════════════════════════════════════════════════════════════════
      EDIT MODAL
      ════════════════════════════════════════════════════════════════════ -->
-<div id="edit-modal" class="fixed inset-0 z-40 hidden flex items-end justify-center"
-     style="background:rgba(0,0,0,.4)" onclick="closeEditModal(event)">
-  <div class="w-full max-w-md rounded-t-3xl p-5 pb-8" style="background:var(--bg)" onclick.stop>
+<div id="edit-modal" class="fixed inset-0 z-40 hidden items-end justify-center"
+     style="background:rgba(0,0,0,.45); display:none"
+     onclick="closeModal(event)">
+  <div class="w-full max-w-md rounded-t-3xl p-5 pb-8" style="background:var(--bg)">
     <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
     <h3 class="font-bold text-lg mb-4">✏️ Редагувати оселю</h3>
-    <input type="hidden" id="edit-house-id"/>
+    <input type="hidden" id="edit-id"/>
     <div class="space-y-3">
-      <input id="edit-city"   type="text" placeholder="Місто"   class="w-full rounded-xl px-4 py-3"/>
-      <input id="edit-street" type="text" placeholder="Вулиця"  class="w-full rounded-xl px-4 py-3"/>
-      <input id="edit-house"  type="text" placeholder="Будинок" class="w-full rounded-xl px-4 py-3"/>
-      <select id="edit-group" class="w-full rounded-xl px-4 py-3">
+      <input id="edit-city"   type="text" placeholder="Місто"/>
+      <input id="edit-street" type="text" placeholder="Вулиця"/>
+      <input id="edit-house"  type="text" placeholder="Будинок"/>
+      <select id="edit-group" style="border-radius:14px; padding:12px 16px">
         <option value="1">Група 1</option><option value="2">Група 2</option>
         <option value="3">Група 3</option><option value="4">Група 4</option>
         <option value="5">Група 5</option><option value="6">Група 6</option>
@@ -398,72 +518,97 @@
     </div>
     <button onclick="saveEdit()"
       class="tg-btn w-full py-4 rounded-2xl font-bold text-base mt-4">
-      💾 Зберегти зміни
+      💾 Зберегти
     </button>
   </div>
 </div>
 
 
+<!-- ════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ════════════════════════════════════════════════════════════════════ -->
 <script>
-// ════ CONFIG ══════════════════════════════════════════════════════════════════
-const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://localhost:8000/api' : '/api';
 
-// ════ TG INIT ════════════════════════════════════════════════════════════════
+// ── TELEGRAM ──────────────────────────────────────────────────────────────────
 const tg = window.Telegram?.WebApp;
 let tgUser = null;
 if (tg) {
   tg.ready(); tg.expand();
   tgUser = tg.initDataUnsafe?.user;
   const tp = tg.themeParams || {};
-  const set = (v, d) => v || d;
-  document.documentElement.style.cssText += `
-    --bg:${set(tp.bg_color,'#fff')};
-    --text:${set(tp.text_color,'#1a1a1a')};
-    --hint:${set(tp.hint_color,'#666')};
-    --link:${set(tp.link_color,'#2481cc')};
-    --btn:${set(tp.button_color,'#2481cc')};
-    --btnT:${set(tp.button_text_color,'#fff')};
-    --sec:${set(tp.secondary_bg_color,'#f1f1f1')};
-  `;
+  const r = document.documentElement;
+  if (tp.bg_color)             r.style.setProperty('--bg',   tp.bg_color);
+  if (tp.text_color)           r.style.setProperty('--text', tp.text_color);
+  if (tp.hint_color)           r.style.setProperty('--hint', tp.hint_color);
+  if (tp.link_color)           r.style.setProperty('--link', tp.link_color);
+  if (tp.button_color)         r.style.setProperty('--btn',  tp.button_color);
+  if (tp.button_text_color)    r.style.setProperty('--btnT', tp.button_text_color);
+  if (tp.secondary_bg_color)   r.style.setProperty('--sec',  tp.secondary_bg_color);
 }
 
-// ════ STATE ═══════════════════════════════════════════════════════════════════
-let S = { house: null, schedule: null, allHouses: [] };
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let S = {
+  house:     null,
+  allHouses: [],
+  schedule:  null,
+  // reg wizard
+  regCity: '', regStreet: '', regHouse: '', regGroup: null, regGeo: null,
+};
 
-// ════ ROUTING ════════════════════════════════════════════════════════════════
+// ── API ───────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: {'Content-Type': 'application/json'}, ...opts
+  });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || r.statusText); }
+  return r.json();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── ROUTING ───────────────────────────────────────────────────────────────────
 function go(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('screen-' + screen)?.classList.add('active');
   document.getElementById('tab-' + screen)?.classList.add('active');
-  if (screen === 'dashboard') refreshDashboard();
-  if (screen === 'schedule')  loadSchedule();
-  if (screen === 'sensor')    loadSensorScreen();
-  if (screen === 'settings')  loadSettings();
+  const actions = { dashboard: refreshDashboard, schedule: loadSchedule,
+                    sensor: loadSensorScreen, settings: loadSettings };
+  actions[screen]?.();
 }
-
 function showNav() {
   const n = document.getElementById('nav');
   n.style.cssText = 'display:flex!important';
 }
 
-// ════ INIT ═══════════════════════════════════════════════════════════════════
+// ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
-  const saved = localStorage.getItem('dtek_house_v2');
+  // Load cities for datalist
+  api('/address/cities').then(d => {
+    const dl = document.getElementById('cities-list');
+    dl.innerHTML = d.cities.map(c => `<option value="${c}"/>`).join('');
+  }).catch(() => {});
+
+  const saved = localStorage.getItem('dtek_v3');
   if (saved) {
     S.house = JSON.parse(saved);
-    showNav(); go('dashboard');
-    hideLoading(); return;
+    showNav(); go('dashboard'); hideLoading(); return;
   }
   if (tgUser) {
     try {
       const r = await api(`/houses/user/${tgUser.id}`);
       if (r?.houses?.length) {
-        S.house = r.houses[0];
-        S.allHouses = r.houses;
-        save(); showNav(); go('dashboard');
-        hideLoading(); return;
+        S.house = r.houses[0]; S.allHouses = r.houses;
+        save(); showNav(); go('dashboard'); hideLoading(); return;
       }
     } catch(_) {}
   }
@@ -471,103 +616,233 @@ async function init() {
   document.getElementById('screen-registration').classList.add('active');
 }
 function hideLoading() { document.getElementById('loading').style.display = 'none'; }
-function save() { localStorage.setItem('dtek_house_v2', JSON.stringify(S.house)); }
+function save() { if (S.house) localStorage.setItem('dtek_v3', JSON.stringify(S.house)); }
 
-// ════ API HELPERS ═════════════════════════════════════════════════════════════
-async function api(path, opts = {}) {
-  const r = await fetch(API + path, {
-    headers: { 'Content-Type': 'application/json' }, ...opts
-  });
-  if (!r.ok) { const e = await r.json(); throw new Error(e.detail || r.statusText); }
-  return r.json();
-}
 
-// ════ TOAST ═══════════════════════════════════════════════════════════════════
-let _toastT;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  clearTimeout(_toastT);
-  _toastT = setTimeout(() => el.classList.remove('show'), 2500);
-}
+// ════ REGISTRATION WIZARD ════════════════════════════════════════════════════
 
-// ════ REGISTRATION ═══════════════════════════════════════════════════════════
 function switchRegTab(tab) {
   const isNew = tab === 'new';
-  document.getElementById('reg-form-new').classList.toggle('hidden', !isNew);
-  document.getElementById('reg-form-join').classList.toggle('hidden', isNew);
-  const tn = document.getElementById('reg-tab-new');
-  const tj = document.getElementById('reg-tab-join');
-  if (isNew) {
-    tn.className = tn.className.replace('tg-hint','tg-btn');
-    tj.className = tj.className.replace('tg-btn','tg-hint');
-  } else {
-    tj.className = tj.className.replace('tg-hint','tg-btn');
-    tn.className = tn.className.replace('tg-btn','tg-hint');
-  }
+  document.getElementById('rf-new').classList.toggle('hidden', !isNew);
+  document.getElementById('rf-join').classList.toggle('hidden', isNew);
+  const tn = document.getElementById('rt-new');
+  const tj = document.getElementById('rt-join');
+  tn.className = tn.className.replace(isNew ? 'tg-hint' : 'tg-btn', isNew ? 'tg-btn' : 'tg-hint');
+  tj.className = tj.className.replace(isNew ? 'tg-btn' : 'tg-hint', isNew ? 'tg-hint' : 'tg-btn');
 }
 
-async function registerHouse() {
+function setDot(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('dot-'+i).classList.toggle('done', i <= n);
+  });
+}
+
+function showRegStep(n) {
+  document.querySelectorAll('.reg-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('reg-step-'+n)?.classList.add('active');
+  setDot(n);
+}
+
+// ─ City input: refresh street autocomplete if city changes
+function onCityInput() {
+  document.getElementById('street-dropdown').classList.add('hidden');
+  document.getElementById('street-dropdown').innerHTML = '';
+}
+
+// ─ Street autocomplete
+let _streetTimer;
+async function onStreetInput() {
+  clearTimeout(_streetTimer);
+  const city   = document.getElementById('reg-city').value.trim();
+  const query  = document.getElementById('reg-street').value.trim();
+  const dd     = document.getElementById('street-dropdown');
+
+  if (!city || query.length < 2) { dd.classList.add('hidden'); return; }
+
+  _streetTimer = setTimeout(async () => {
+    try {
+      const r = await api(`/address/streets?city=${encodeURIComponent(city)}&query=${encodeURIComponent(query)}`);
+      if (r.streets.length === 0) { dd.classList.add('hidden'); return; }
+      dd.innerHTML = r.streets.map(s =>
+        `<div class="autocomplete-item" onclick="selectStreet('${s.replace(/'/g,"\\'")}')">🛣️ ${s}</div>`
+      ).join('');
+      dd.classList.remove('hidden');
+    } catch(_) { dd.classList.add('hidden'); }
+  }, 350);
+}
+
+function selectStreet(name) {
+  document.getElementById('reg-street').value = name;
+  document.getElementById('street-dropdown').classList.add('hidden');
+}
+
+// Close dropdown when clicking elsewhere
+document.addEventListener('click', e => {
+  if (!e.target.closest('.relative'))
+    document.getElementById('street-dropdown')?.classList.add('hidden');
+});
+
+// ─ Step 1 → 2
+async function goStep2() {
   const city   = document.getElementById('reg-city').value.trim();
   const street = document.getElementById('reg-street').value.trim();
   const house  = document.getElementById('reg-house').value.trim();
-  const group  = document.getElementById('reg-group').value;
-  if (!city||!street||!house||!group) { toast('⚠️ Заповніть усі поля'); return; }
+  if (!city || !street || !house) { toast('⚠️ Заповніть усі поля'); return; }
 
-  // Register user
-  if (tgUser) {
-    await api('/users/register', { method:'POST', body: JSON.stringify({
-      telegram_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name
-    })}).catch(()=>{});
-  }
+  S.regCity = city; S.regStreet = street; S.regHouse = house;
+  showRegStep(2);
+
+  // Lookup
+  const lookupCard = document.getElementById('lookup-card');
+  const lookupSt   = document.getElementById('lookup-status');
+  const lookupAddr = document.getElementById('lookup-address');
+  const manualWrap = document.getElementById('manual-group-wrap');
+  const schedPrev  = document.getElementById('schedule-preview');
+  const step2btn   = document.getElementById('step2-btn');
+
+  lookupAddr.textContent = `${city}, ${street}, ${house}`;
+  step2btn.disabled = true;
+  step2btn.classList.add('opacity-50');
+  manualWrap.classList.add('hidden');
+  schedPrev.classList.add('hidden');
 
   try {
+    const r = await api('/address/lookup', {
+      method: 'POST',
+      body: JSON.stringify({ city, street, house_number: house }),
+    });
+
+    S.regGroup = r.group;
+    S.regGeo   = r.geo;
+
+    if (r.group) {
+      const src = r.source === 'table' ? '📋 Таблиця DTEK' : '🌐 Геокодування';
+      const conf = r.confidence === 'high' ? '🟢 Висока' : '🟡 Середня';
+      lookupSt.innerHTML = `
+        <span class="text-green-600 font-semibold">✅ Групу визначено автоматично</span>`;
+      lookupCard.innerHTML = `
+        <div class="text-sm font-bold mb-1">Група DTEK: <span style="color:var(--btn)">${r.group}</span></div>
+        <div class="text-xs tg-hint">${src} · Точність: ${conf}</div>
+        <div class="text-xs tg-hint mt-0.5">${city}, ${street}, ${house}</div>
+        <div class="text-xs tg-hint mt-0.5 italic">${r.message}</div>`;
+
+      // Preview schedule
+      if (r.schedule) {
+        renderPreviewTimeline(r.schedule.slots);
+        const cur = r.schedule.current_status === 'power' ? '💡 Зараз: Світло є' : '🔴 Зараз: Відключення';
+        document.getElementById('preview-status').textContent = cur;
+        schedPrev.classList.remove('hidden');
+      }
+    } else {
+      lookupSt.innerHTML = `<span class="text-yellow-600 font-semibold">⚠️ ${r.message}</span>`;
+      lookupCard.innerHTML = `
+        <div class="text-xs tg-hint">${r.message}</div>
+        <div class="text-xs tg-hint mt-0.5">${city}, ${street}, ${house}</div>`;
+      manualWrap.classList.remove('hidden');
+      S.regGroup = parseInt(document.getElementById('reg-group').value);
+    }
+
+    step2btn.disabled = false;
+    step2btn.classList.remove('opacity-50');
+  } catch(e) {
+    lookupSt.innerHTML = `<span class="text-red-500">❌ Помилка: ${e.message}</span>`;
+    manualWrap.classList.remove('hidden');
+    S.regGroup = parseInt(document.getElementById('reg-group').value);
+    step2btn.disabled = false;
+    step2btn.classList.remove('opacity-50');
+  }
+}
+
+function renderPreviewTimeline(slots) {
+  const now = new Date().getHours();
+  document.getElementById('preview-timeline').innerHTML = slots.map(s => `
+    <div class="slot-${s.type}" style="height:20px;${s.hour===now?'outline:2px solid var(--btn);outline-offset:1px':''}"
+      title="${s.time_label}: ${s.label}"></div>`).join('');
+}
+
+function backStep1() { showRegStep(1); }
+
+function goStep3() {
+  // If manual group selected
+  if (document.getElementById('manual-group-wrap')?.classList.contains('hidden') === false) {
+    S.regGroup = parseInt(document.getElementById('reg-group').value);
+  }
+  if (!S.regGroup) { toast('⚠️ Оберіть групу'); return; }
+
+  document.getElementById('conf-city').textContent   = S.regCity;
+  document.getElementById('conf-street').textContent = S.regStreet;
+  document.getElementById('conf-house').textContent  = S.regHouse;
+  document.getElementById('conf-group').textContent  = `Група ${S.regGroup}`;
+
+  const geo = document.getElementById('conf-geo');
+  if (S.regGeo?.display) {
+    geo.textContent = `📍 ${S.regGeo.display.split(',').slice(0,3).join(',')}`;
+    geo.classList.remove('hidden');
+  } else {
+    geo.classList.add('hidden');
+  }
+
+  showRegStep(3);
+}
+
+function backStep2() { showRegStep(2); }
+
+async function registerHouse() {
+  if (tgUser) {
+    await api('/users/register', { method:'POST', body: JSON.stringify({
+      telegram_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name,
+    })}).catch(() => {});
+  }
+  try {
     const data = await api('/houses/add', { method:'POST', body: JSON.stringify({
-      telegram_id: tgUser?.id || 0,
-      city, street, house_number: house, dtek_group: parseInt(group)
+      telegram_id:  tgUser?.id || 0,
+      city:         S.regCity,
+      street:       S.regStreet,
+      house_number: S.regHouse,
+      dtek_group:   S.regGroup,
     })});
     S.house = data; save();
   } catch(_) {
-    S.house = { id:1, house_code:'DEMO01', city, street, house_number:house, dtek_group:parseInt(group), neighbors_count:1 };
+    // Demo mode
+    S.house = { id:1, house_code:'DEMO01', city: S.regCity, street: S.regStreet,
+                house_number: S.regHouse, dtek_group: S.regGroup || 1, neighbors_count:1 };
     save();
   }
   showNav(); go('dashboard');
 }
 
-// ─── Join preview ────────────────────────────────────────────────────────────
+// ─ Join house (from reg screen)
 let _joinTimer;
 async function previewJoin(code) {
   clearTimeout(_joinTimer);
   document.getElementById('join-preview').classList.add('hidden');
-  document.getElementById('join-preview-err').classList.add('hidden');
+  document.getElementById('join-err').classList.add('hidden');
   if (code.length !== 6) return;
   _joinTimer = setTimeout(async () => {
     try {
       const d = await api(`/houses/code/${code}`);
-      document.getElementById('join-preview-addr').textContent =
-        `${d.city}, ${d.street}, буд. ${d.house_number}`;
-      document.getElementById('join-preview-group').textContent = `Група DTEK: ${d.dtek_group}`;
-      document.getElementById('join-preview-neighbors').textContent =
-        `👤 ${d.neighbors_count} мешканців стежать`;
+      document.getElementById('jp-addr').textContent = `${d.city}, ${d.street}, ${d.house_number}`;
+      document.getElementById('jp-group').textContent = `Група DTEK: ${d.dtek_group}`;
+      document.getElementById('jp-neighbors').textContent = `👤 ${d.neighbors_count} мешканців стежать`;
       document.getElementById('join-preview').classList.remove('hidden');
     } catch(e) {
-      document.getElementById('join-preview-err').textContent = `❌ ${e.message}`;
-      document.getElementById('join-preview-err').classList.remove('hidden');
+      document.getElementById('join-err').textContent = `❌ ${e.message}`;
+      document.getElementById('join-err').classList.remove('hidden');
     }
   }, 400);
 }
 
 async function joinHouseReg() {
-  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
-  if (code.length !== 6) { toast('⚠️ Введіть 6-символьний код'); return; }
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  if (code.length !== 6) { toast('⚠️ Введіть 6 символів'); return; }
   if (tgUser) {
     await api('/users/register', { method:'POST', body: JSON.stringify({
-      telegram_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name
-    })}).catch(()=>{});
+      telegram_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name,
+    })}).catch(() => {});
   }
   try {
     const d = await api('/houses/join', { method:'POST', body: JSON.stringify({
-      telegram_id: tgUser?.id || 0, house_code: code
+      telegram_id: tgUser?.id || 0, house_code: code,
     })});
     S.house = d; save();
     toast(d.already_joined ? 'ℹ️ Вже приєднано' : '✅ Успішно приєднано!');
@@ -575,7 +850,9 @@ async function joinHouseReg() {
   } catch(e) { toast('❌ ' + e.message); }
 }
 
+
 // ════ DASHBOARD ══════════════════════════════════════════════════════════════
+
 async function refreshDashboard() {
   if (!S.house) return;
   const h = S.house;
@@ -583,63 +860,70 @@ async function refreshDashboard() {
     `${h.city}, ${h.street}, ${h.house_number}`;
   document.getElementById('dash-code').textContent = h.house_code || '';
   document.getElementById('dash-group').textContent = `Група ${h.dtek_group}`;
-  document.getElementById('dash-neighbors').textContent =
-    `${h.neighbors_count ?? '—'} мешк.`;
 
   // Refresh from API
-  if (tgUser) {
+  if (tgUser || h.id) {
     try {
-      const r = await api(`/houses/user/${tgUser.id}`);
-      if (r?.houses?.[0]) {
-        S.house = r.houses[0]; S.allHouses = r.houses; save();
-        const hf = S.house;
-        document.getElementById('dash-neighbors').textContent =
-          `${hf.neighbors_count ?? '—'} мешк.`;
-        updateSensorWidgets(hf.sensor_status);
-      }
-    } catch(_){}
+      const fresh = await api(`/status/${h.id}`);
+      S.house = fresh; save();
+      applyDashboard(fresh);
+      return;
+    } catch(_) {}
   }
-
-  // Schedule
+  // Fallback: schedule only
   try {
     const sched = await api(`/schedule/${h.dtek_group}`);
+    applyScheduleToStatus(sched);
+  } catch(_) {}
+}
+
+function applyDashboard(h) {
+  document.getElementById('dash-address').textContent = `${h.city}, ${h.street}, ${h.house_number}`;
+  document.getElementById('dash-code').textContent    = h.house_code || '';
+  document.getElementById('dash-group').textContent   = `Група ${h.dtek_group}`;
+  document.getElementById('dash-neighbors').textContent = `${h.neighbors_count ?? '—'} мешк.`;
+
+  const smart = h.smart_status;
+  if (smart) {
+    renderStatusCard(smart.is_on);
+    renderSmartBadge(smart);
+    document.getElementById('next-event-text').textContent = '';
+  }
+
+  const sensor = h.sensor_status;
+  if (sensor) {
+    document.getElementById('dash-sensor-icon').textContent  = sensor.online ? (sensor.is_charging ? '🟢' : '🔴') : '⚪';
+    document.getElementById('dash-sensor-label').textContent = sensor.online ? 'Активний' : 'Офлайн';
+    document.getElementById('dash-sensor-ago').textContent   = sensor.minutes_ago != null ? `${sensor.minutes_ago} хв тому` : '—';
+    document.getElementById('dash-battery').textContent      = sensor.battery_percentage != null ? `${sensor.battery_percentage}%` : '—%';
+  }
+
+  // Also load schedule for next-event
+  api(`/schedule/${h.dtek_group}`).then(sched => {
     S.schedule = sched;
-    updateStatusCard(sched.current_status);
-    updateNextEvent(sched.next_event);
-  } catch(_) {
-    updateStatusCard('power');
-  }
+    if (sched.next_event) {
+      const ev = sched.next_event;
+      document.getElementById('next-event-text').textContent = ev.label;
+      document.getElementById('next-event-time').textContent = `О ${ev.time} (через ${ev.in_hours} год.)`;
+    }
+  }).catch(() => {});
 }
 
-function updateSensorWidgets(sensor) {
-  if (!sensor) {
-    document.getElementById('sensor-icon').textContent = '⚪';
-    document.getElementById('sensor-online-label').textContent = 'Не підключено';
-    document.getElementById('sensor-battery').textContent = '—%';
-    return;
-  }
-  const online = sensor.online;
-  document.getElementById('sensor-icon').textContent = sensor.is_charging ? (online?'🟢':'🟡') : (online?'🔴':'⚪');
-  document.getElementById('sensor-online-label').textContent = sensor.online_label || '—';
-  document.getElementById('sensor-battery').textContent =
-    sensor.battery_percentage != null ? sensor.battery_percentage + '%' : '—%';
-}
-
-function updateStatusCard(status) {
+function renderStatusCard(isOn) {
   const circle = document.getElementById('status-circle');
   const label  = document.getElementById('status-label');
   const sub    = document.getElementById('status-sub');
   const card   = document.getElementById('status-card');
-  if (status === 'power') {
+  if (isOn) {
     circle.style.background = '#22c55e';
-    circle.className = circle.className.replace('pulse-red','pulse-green');
+    circle.className = circle.className.replace('pulse-r','pulse-g');
     circle.textContent = '💡';
     label.textContent = 'Світло є'; label.className = 'text-2xl font-bold text-green-700';
     sub.textContent = 'Електропостачання в нормі'; sub.className = 'text-sm mt-1 text-green-600';
     card.style.background = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
   } else {
     circle.style.background = '#ef4444';
-    circle.className = circle.className.replace('pulse-green','pulse-red');
+    circle.className = circle.className.replace('pulse-g','pulse-r');
     circle.textContent = '🔴';
     label.textContent = 'Відключення'; label.className = 'text-2xl font-bold text-red-700';
     sub.textContent = 'Електропостачання відсутнє'; sub.className = 'text-sm mt-1 text-red-500';
@@ -647,124 +931,129 @@ function updateStatusCard(status) {
   }
 }
 
-function updateNextEvent(ev) {
-  if (!ev) { document.getElementById('next-event-text').textContent = 'Дані недоступні'; return; }
-  document.getElementById('next-event-text').textContent = ev.label;
-  document.getElementById('next-event-time').textContent =
-    `О ${ev.time} (через ${ev.in_hours} год.)`;
+function renderSmartBadge(smart) {
+  const wrap = document.getElementById('smart-badge');
+  const text = document.getElementById('smart-badge-text');
+  if (!smart?.badge) { wrap.classList.add('hidden'); return; }
+  text.textContent = smart.badge;
+  text.className = `inline-block text-xs font-semibold px-3 py-1 rounded-full badge-${smart.badge_type || 'info'}`;
+  wrap.classList.remove('hidden');
 }
 
-function shareHouseCode() {
+function applyScheduleToStatus(sched) {
+  const isOn = sched.current_status === 'power';
+  renderStatusCard(isOn);
+  if (sched.next_event) {
+    const ev = sched.next_event;
+    document.getElementById('next-event-text').textContent = ev.label;
+    document.getElementById('next-event-time').textContent = `О ${ev.time} (через ${ev.in_hours} год.)`;
+  }
+}
+
+function shareCode() {
   const code = S.house?.house_code;
   if (!code) return;
-  const msg = `🏠 Приєднайся до моніторингу відключень!\nКод будинку: ${code}\nВідкрий: @dtek_monitor_bot`;
-  if (tg?.shareUrl) { tg.shareUrl(msg); }
-  else if (navigator.clipboard) { navigator.clipboard.writeText(code); toast('📋 Код скопійовано: ' + code); }
+  const msg = `🏠 Моніторинг відключень DTEK\nКод будинку: ${code}\nПриєднуйся: @dtek_monitor_bot`;
+  if (tg?.shareUrl) tg.shareUrl(msg);
+  else { navigator.clipboard?.writeText(code); toast('📋 Код скопійовано: ' + code); }
 }
 
+
 // ════ SCHEDULE ════════════════════════════════════════════════════════════════
+
 async function loadSchedule() {
   if (!S.house) return;
-  document.getElementById('sched-group').textContent = S.house.dtek_group;
+  const group = S.house.dtek_group;
+  document.getElementById('sched-group').textContent = group;
   document.getElementById('sched-date').textContent =
     new Date().toLocaleDateString('uk-UA', {weekday:'short',day:'numeric',month:'short'});
 
   let slots;
   try {
-    const r = await api(`/schedule/${S.house.dtek_group}`);
-    slots = r.slots;
-  } catch(_) { slots = mockSlots(S.house.dtek_group); }
+    const r = await api(`/schedule/${group}`);
+    S.schedule = r; slots = r.slots;
+  } catch(_) { slots = mockSlots(group); }
 
-  renderTimeline(slots);
-  renderHourlyList(slots);
-}
-
-function renderTimeline(slots) {
   const now = new Date().getHours();
-  document.getElementById('timeline-grid').innerHTML = slots.map(s => `
-    <div class="slot-${s.type} relative" style="height:36px;${s.hour===now?'outline:2px solid var(--btn);outline-offset:1px':''}"
-      title="${s.time_label}: ${s.label}">
-    </div>
-  `).join('');
-}
+  document.getElementById('sched-timeline').innerHTML = slots.map(s => `
+    <div class="slot-${s.type}" style="height:32px;${s.hour===now?'outline:2px solid var(--btn);outline-offset:1px':''}"
+      title="${s.time_label}: ${s.label}"></div>`).join('');
 
-function renderHourlyList(slots) {
-  const now = new Date().getHours();
   const icons = {power:'💡',no_power:'⛔',possible:'🔆'};
-  const colors = {power:'text-green-600',no_power:'text-red-500',possible:'text-yellow-500'};
-  document.getElementById('hourly-list').innerHTML = slots.map(s => `
+  const colors = {power:'text-green-600',no_power:'text-red-500',possible:'text-yellow-600'};
+  document.getElementById('sched-list').innerHTML = slots.map(s => `
     <div class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm
-      ${s.hour===now ? 'border-2 tg-border font-semibold' : 'tg-sec'}">
+      ${s.hour===now ? 'border-2 font-semibold' : 'tg-sec'}"
+      style="${s.hour===now ? 'border-color:var(--btn)' : ''}">
       <span class="tg-hint w-14 text-xs">${s.time_label.split('–')[0]}</span>
       <span class="${colors[s.type]} flex-1">${icons[s.type]} ${s.label}</span>
-      ${s.hour===now ? '<span class="text-xs tg-hint">← зараз</span>' : ''}
-    </div>
-  `).join('');
+      ${s.hour===now ? '<span class="text-xs tg-hint font-normal">← зараз</span>' : ''}
+    </div>`).join('');
 }
 
-function mockSlots(group) {
+function mockSlots(g) {
   const raw = {1:[1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,1,0],
     2:[0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,0,1],
     3:[1,1,0,0,0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0],
     4:[0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0],
     5:[1,0,0,0,1,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,0,0,0,1],
-    6:[0,0,1,1,1,0,0,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0]}[group]||[];
+    6:[0,0,1,1,1,0,0,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,0,0]}[g]||[];
   return raw.map((v,h)=>({
     hour:h, time_label:`${String(h).padStart(2,'0')}:00–${String((h+1)%24).padStart(2,'0')}:00`,
     type:v?'power':'no_power', label:v?'Світло є':'Відключення'
   }));
 }
 
+
 // ════ SENSOR SCREEN ══════════════════════════════════════════════════════════
+
 function loadSensorScreen() {
   const h = S.house;
   if (!h) return;
-
-  document.getElementById('sensor-house-code').textContent = h.house_code || '——————';
+  document.getElementById('sensor-code').textContent = h.house_code || '——————';
 
   const sensor = h.sensor_status;
-  const badge = document.getElementById('sensor-badge');
+  const badge  = document.getElementById('sensor-badge');
   const detail = document.getElementById('sensor-detail');
 
   if (!sensor) {
-    badge.textContent = 'Немає даних';
-    badge.className = badge.className.replace(/bg-\S+/g,'bg-gray-200');
+    badge.textContent = 'Не підключено';
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-medium bg-gray-200 tg-hint';
     detail.innerHTML = '<div>Датчик не налаштовано. Отримайте скрипт нижче.</div>';
     return;
   }
 
-  const online = sensor.online;
+  const online   = sensor.online;
   const charging = sensor.is_charging;
-
   badge.textContent = sensor.online_label;
-  badge.className = badge.className.replace(/bg-\S+\s/g,'')
-    + (online ? (charging ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
-              : 'bg-gray-200 text-gray-600');
+  badge.className = `text-xs px-2.5 py-1 rounded-full font-medium ${
+    online ? (charging ? 'badge-success' : 'bg-red-100 text-red-700') : 'bg-gray-200 tg-hint'}`;
 
-  const ago = sensor.minutes_ago != null ? ` (${sensor.minutes_ago} хв тому)` : '';
+  const ago = sensor.minutes_ago != null ? ` · ${sensor.minutes_ago} хв тому` : '';
   detail.innerHTML = `
     <div>${charging ? '💡 Заряджається — <b>Світло є</b>' : '🔴 Від батареї — <b>Немає світла</b>'}</div>
-    ${sensor.battery_percentage!=null ? `<div>🔋 Акумулятор: ${sensor.battery_percentage}%</div>` : ''}
-    <div>⏱ Оновлено${ago}</div>
-  `;
+    ${sensor.battery_percentage != null ? `<div>🔋 Акумулятор: ${sensor.battery_percentage}%</div>` : ''}
+    <div>⏱ Оновлено${ago}</div>`;
 }
 
-function copyHouseCode() {
+function copyCode() {
   const code = S.house?.house_code;
   if (!code) return;
-  navigator.clipboard?.writeText(code).then(()=>toast('📋 Код скопійовано: ' + code));
+  navigator.clipboard?.writeText(code).then(() => toast('📋 Код скопійовано: ' + code));
 }
 
-async function requestSensorScript() {
+async function requestScript() {
   if (!S.house) { toast('⚠️ Спочатку зареєструйте будинок'); return; }
-  toast('📤 Надсилаємо скрипт у Telegram...');
+  toast('📤 Надсилаємо скрипт...');
   try {
     await api(`/sensor/send-script/${tgUser?.id||0}?house_id=${S.house.id}`, {method:'POST'});
     toast('✅ Скрипт надіслано у Telegram!');
   } catch(_) { toast('❌ Помилка. Напишіть боту /sensor'); }
 }
 
+
 // ════ SETTINGS ═══════════════════════════════════════════════════════════════
+
 async function loadSettings() {
   if (tgUser) {
     try {
@@ -772,64 +1061,60 @@ async function loadSettings() {
       if (r?.houses) { S.allHouses = r.houses; }
     } catch(_) {}
   }
-
   const houses = S.allHouses.length ? S.allHouses : (S.house ? [S.house] : []);
-  const container = document.getElementById('settings-houses');
-
-  container.innerHTML = houses.map(h => {
-    const sensor = h.sensor_status;
-    const sIcon = sensor ? (sensor.online ? (sensor.is_charging?'🟢':'🔴') : '⚪') : '⚪';
+  document.getElementById('settings-list').innerHTML = houses.map(h => {
+    const s = h.sensor_status;
+    const si = s ? (s.online ? (s.is_charging?'🟢':'🔴') : '⚪') : '⚪';
+    const sl = s ? s.online_label : 'Датчик не підключено';
     return `
     <div class="tg-sec rounded-2xl p-4">
       <div class="flex items-start justify-between mb-2">
-        <div>
+        <div class="flex-1 min-w-0">
           <div class="font-semibold text-sm">${h.city}, ${h.street}, ${h.house_number}</div>
           <div class="tg-hint text-xs mt-0.5">Група ${h.dtek_group} · 👤 ${h.neighbors_count} мешк.</div>
         </div>
-        <button onclick='openEditModal(${JSON.stringify(h)})'
-          class="tg-link text-sm font-medium ml-2 flex-shrink-0">✏️ Змінити</button>
+        <button onclick='openModal(${JSON.stringify(h)})' class="tg-link text-sm font-semibold ml-2">✏️</button>
       </div>
-      <div class="flex items-center gap-3 mt-2">
-        <span class="house-code text-sm font-bold px-2 py-0.5 rounded-lg">${h.house_code}</span>
-        <span class="text-xs tg-hint">${sIcon} ${sensor?.online_label||'Датчик не підкл.'}</span>
+      <div class="flex items-center gap-3">
+        <span class="house-code text-sm font-bold px-2 py-0.5">${h.house_code}</span>
+        <span class="text-xs tg-hint">${si} ${sl}</span>
       </div>
     </div>`;
-  }).join('') || '<p class="tg-hint text-sm text-center py-4">Немає будинків</p>';
+  }).join('') || '<p class="tg-hint text-sm text-center py-6">Немає будинків</p>';
 }
 
 async function joinFromSettings() {
-  const code = document.getElementById('settings-join-code').value.trim().toUpperCase();
+  const code = document.getElementById('settings-join').value.trim().toUpperCase();
   if (code.length !== 6) { toast('⚠️ Введіть 6 символів'); return; }
   try {
     const d = await api('/houses/join', { method:'POST', body: JSON.stringify({
-      telegram_id: tgUser?.id||0, house_code: code
+      telegram_id: tgUser?.id||0, house_code: code,
     })});
-    toast(d.already_joined ? 'ℹ️ Вже приєднано' : '✅ Приєднано до ' + d.city);
+    toast(d.already_joined ? 'ℹ️ Вже приєднано' : `✅ Приєднано до ${d.city}`);
     S.house = d; save();
-    document.getElementById('settings-join-code').value = '';
+    document.getElementById('settings-join').value = '';
     loadSettings();
   } catch(e) { toast('❌ ' + e.message); }
 }
 
-// ─── Edit modal ──────────────────────────────────────────────────────────────
-function openEditModal(h) {
-  document.getElementById('edit-house-id').value  = h.id;
+// ── Edit modal ────────────────────────────────────────────────────────────────
+function openModal(h) {
+  document.getElementById('edit-id').value     = h.id;
   document.getElementById('edit-city').value   = h.city;
   document.getElementById('edit-street').value = h.street;
   document.getElementById('edit-house').value  = h.house_number;
   document.getElementById('edit-group').value  = h.dtek_group;
-  document.getElementById('edit-modal').classList.remove('hidden');
+  const m = document.getElementById('edit-modal');
+  m.style.display = 'flex';
 }
-function closeEditModal(e) {
+function closeModal(e) {
   if (e.target === document.getElementById('edit-modal'))
-    document.getElementById('edit-modal').classList.add('hidden');
+    document.getElementById('edit-modal').style.display = 'none';
 }
-
 async function saveEdit() {
-  const id = parseInt(document.getElementById('edit-house-id').value);
+  const id   = parseInt(document.getElementById('edit-id').value);
   const body = {
-    telegram_id:  tgUser?.id || 0,
-    house_id:     id,
+    telegram_id:  tgUser?.id || 0, house_id: id,
     city:         document.getElementById('edit-city').value.trim(),
     street:       document.getElementById('edit-street').value.trim(),
     house_number: document.getElementById('edit-house').value.trim(),
@@ -840,12 +1125,12 @@ async function saveEdit() {
     toast('✅ Збережено');
     if (S.house?.id === id) { S.house = d; save(); }
     S.allHouses = S.allHouses.map(h => h.id === id ? d : h);
-    document.getElementById('edit-modal').classList.add('hidden');
+    document.getElementById('edit-modal').style.display = 'none';
     loadSettings();
   } catch(e) { toast('❌ ' + e.message); }
 }
 
-// ════ START ═══════════════════════════════════════════════════════════════════
+// ── Boot ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
